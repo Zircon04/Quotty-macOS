@@ -117,8 +117,8 @@ public final class ActiveAppDetector {
 
         do {
             try proc.run()
-            proc.waitUntilExit()
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            proc.waitUntilExit()
             guard let output = String(data: data, encoding: .utf8) else { return nil }
 
             struct ProcEntry {

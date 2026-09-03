@@ -93,37 +93,45 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         return unique
     }
 
-    private func findEndpointsFromProcesses() -> [Endpoint] {
-        var results: [Endpoint] = []
+    private func runProcess(executable: String, arguments: [String]) -> String? {
         let pipe = Pipe()
         let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/bin/ps")
-        proc.arguments = ["-eo", "pid,command"]
+        proc.executableURL = URL(fileURLWithPath: executable)
+        proc.arguments = arguments
         proc.standardOutput = pipe
         proc.standardError = FileHandle.nullDevice
 
         do {
             try proc.run()
-            proc.waitUntilExit()
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let output = String(data: data, encoding: .utf8) else { return [] }
+            proc.waitUntilExit()
+            return String(data: data, encoding: .utf8)
+        } catch {
+            return nil
+        }
+    }
 
-            for line in output.components(separatedBy: .newlines) {
-                guard line.contains("language_server") && line.contains("--csrf_token") else { continue }
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                let parts = trimmed.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
-                guard parts.count == 2, let pid = Int32(parts[0]) else { continue }
-                let cmd = String(parts[1])
+    private func findEndpointsFromProcesses() -> [Endpoint] {
+        var results: [Endpoint] = []
+        guard let output = runProcess(executable: "/bin/ps", arguments: ["-eo", "pid,command"]) else {
+            return []
+        }
 
-                guard let csrf = extractFlagValue(cmd: cmd, flag: "--csrf_token") else { continue }
-                let ports = findListeningPorts(pid: pid)
+        for line in output.components(separatedBy: .newlines) {
+            guard line.contains("language_server") && line.contains("--csrf_token") else { continue }
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let parts = trimmed.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            guard parts.count == 2, let pid = Int32(parts[0]) else { continue }
+            let cmd = String(parts[1])
 
-                // Pick candidate ports
-                for port in ports {
-                    results.append(Endpoint(port: port, csrf: csrf))
-                }
+            guard let csrf = extractFlagValue(cmd: cmd, flag: "--csrf_token") else { continue }
+            let ports = findListeningPorts(pid: pid)
+
+            // Pick candidate ports
+            for port in ports {
+                results.append(Endpoint(port: port, csrf: csrf))
             }
-        } catch {}
+        }
 
         return results
     }
@@ -139,31 +147,20 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
     }
 
     private func findListeningPorts(pid: Int32) -> [UInt16] {
+        guard let output = runProcess(executable: "/usr/sbin/lsof", arguments: ["-nP", "-p", "\(pid)", "-a", "-iTCP", "-sTCP:LISTEN"]) else {
+            return []
+        }
+
         var ports: [UInt16] = []
-        let pipe = Pipe()
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
-        proc.arguments = ["-nP", "-p", "\(pid)", "-a", "-iTCP", "-sTCP:LISTEN"]
-        proc.standardOutput = pipe
-        proc.standardError = FileHandle.nullDevice
-
-        do {
-            try proc.run()
-            proc.waitUntilExit()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let output = String(data: data, encoding: .utf8) else { return [] }
-
-            for line in output.components(separatedBy: .newlines) {
-                // Look for ":<port> (LISTEN)"
-                if let colonRange = line.range(of: ":", options: .backwards),
-                   let spaceRange = line.range(of: " (LISTEN)") {
-                    let portStr = line[colonRange.upperBound..<spaceRange.lowerBound]
-                    if let port = UInt16(portStr) {
-                        ports.append(port)
-                    }
+        for line in output.components(separatedBy: .newlines) {
+            if let colonRange = line.range(of: ":", options: .backwards),
+               let spaceRange = line.range(of: " (LISTEN)") {
+                let portStr = line[colonRange.upperBound..<spaceRange.lowerBound]
+                if let port = UInt16(portStr) {
+                    ports.append(port)
                 }
             }
-        } catch {}
+        }
 
         ports.sort()
         // If adjacent ports (e.g. 50605 and 50606), the lower one is usually HTTPS

@@ -33,6 +33,7 @@ public final class QuotaManager: ObservableObject {
 
         setupDetector()
         startPolling()
+        fetchFamily(activeFamily, force: true)
     }
 
     private func setupDetector() {
