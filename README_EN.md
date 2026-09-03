@@ -67,7 +67,7 @@ If a tool is not installed or not running, its row gracefully reports unavailabl
 ## Installation
 
 ### Pre-built Application
-1. Download **`Quotty-macOS.zip`** from the [Releases](https://github.com/YOUR_USERNAME/Quotty-macOS/releases) page.
+1. Download **`Quotty-macOS.zip`** from the [Releases](https://github.com/Zircon04/Quotty-macOS/releases) page.
 2. Unzip and drag `Quotty.app` to your **`/Applications`** folder.
 3. Launch it. On first launch, macOS Gatekeeper may ask for confirmation to open.
 
@@ -94,7 +94,7 @@ If a tool is not installed or not running, its row gracefully reports unavailabl
 Requires the Swift compiler (included with Xcode or Command Line Tools: `xcode-select --install`):
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Quotty-macOS.git
+git clone https://github.com/Zircon04/Quotty-macOS.git
 cd Quotty-macOS
 ./scripts/build_app.sh
 ```

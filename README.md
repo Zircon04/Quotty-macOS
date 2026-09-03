@@ -67,7 +67,7 @@
 ## Установка
 
 ### Готовое приложение
-1. Скачайте архив **`Quotty-macOS.zip`** со страницы [Releases](https://github.com/ВАШ_ЛОГИН/Quotty-macOS/releases).
+1. Скачайте архив **`Quotty-macOS.zip`** со страницы [Releases](https://github.com/Zircon04/Quotty-macOS/releases).
 2. Распакуйте и перетащите `Quotty.app` в папку **«Программы»** (`/Applications`).
 3. Запустите. При первом запуске macOS может спросить подтверждение открытия.
 
@@ -94,7 +94,7 @@
 Для сборки требуется компилятор Swift (входит в бесплатный Xcode или Command Line Tools: `xcode-select --install`):
 
 ```bash
-git clone https://github.com/ВАШ_ЛОГИН/Quotty-macOS.git
+git clone https://github.com/Zircon04/Quotty-macOS.git
 cd Quotty-macOS
 ./scripts/build_app.sh
 ```
