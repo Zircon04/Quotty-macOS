@@ -5,7 +5,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$DIR"
 
 echo "==> Building Quotty release binary..."
-swift build -c release
+SWIFT_BUILD_ARGS=(-c release)
+if [ "${QUOTTY_DISABLE_SWIFT_SANDBOX:-0}" = "1" ]; then
+    SWIFT_BUILD_ARGS=(--disable-sandbox "${SWIFT_BUILD_ARGS[@]}")
+fi
+swift build "${SWIFT_BUILD_ARGS[@]}"
 
 APP_NAME="Quotty.app"
 APP_DIR="$DIR/$APP_NAME"
@@ -21,6 +25,8 @@ mkdir -p "$RESOURCES"
 cp ".build/release/Quotty" "$MACOS/Quotty"
 chmod +x "$MACOS/Quotty"
 
+install -m 644 "assets/AppIcon.icns" "$RESOURCES/AppIcon.icns"
+
 cat << 'EOF' > "$CONTENTS/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -30,6 +36,10 @@ cat << 'EOF' > "$CONTENTS/Info.plist"
     <string>en</string>
     <key>CFBundleExecutable</key>
     <string>Quotty</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.quotty.app</string>
     <key>CFBundleInfoDictionaryVersion</key>

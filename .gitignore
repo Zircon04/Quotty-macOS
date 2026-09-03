@@ -1,3 +1,6 @@
 .build/
 .DS_Store
 *.swp
+Quotty.app/
+Quotty-macOS.zip
+assets/AppIcon.iconset/
