@@ -11,7 +11,7 @@ public final class CodexProvider: QuotaProvider, @unchecked Sendable {
     private let session: URLSession
 
     public init() {
-        let config = URLSessionConfiguration.ephemeral
+        let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15.0
         self.session = URLSession(configuration: config)
     }
@@ -26,7 +26,8 @@ public final class CodexProvider: QuotaProvider, @unchecked Sendable {
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
         req.setValue("Bearer \(auth.accessToken)", forHTTPHeaderField: "Authorization")
-        req.setValue("Quotty/0.1", forHTTPHeaderField: "User-Agent")
+        req.setValue("codex-cli/0.152.1", forHTTPHeaderField: "User-Agent")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
         if let accId = auth.accountId, !accId.isEmpty {
             req.setValue(accId, forHTTPHeaderField: "chatgpt-account-id")
         }
@@ -44,7 +45,10 @@ public final class CodexProvider: QuotaProvider, @unchecked Sendable {
         }
 
         if http.statusCode == 401 {
-            throw FetchError("токен Codex устарел — откройте Codex")
+            throw FetchError("токен Codex устарел — войдите в Codex")
+        }
+        if http.statusCode == 403 || http.statusCode == 404 {
+            throw FetchError("ошибка \(http.statusCode): Cloudflare/прокси блокирует chatgpt.com")
         }
         if http.statusCode == 429 {
             throw FetchError("лимит запросов OpenAI", isRateLimited: true)
