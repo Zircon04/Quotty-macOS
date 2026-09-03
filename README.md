@@ -1,6 +1,10 @@
 # Quotty для macOS
 
-Нативный порт [Quotty](https://github.com/confeden/Quotty) для macOS (SwiftUI + AppKit).
+Нативный порт [Quotty](https://github.com/confeden/Quotty) для macOS на **Swift 6 (SwiftUI + AppKit)**.
+
+> 💡 **Оригинальный проект**: [Quotty (Windows, Rust)](https://github.com/confeden/Quotty) от [@confeden](https://github.com/confeden).  
+> Telegram-канал автора оригинала: [@nova_txt](https://t.me/nova_txt).  
+> Огромное спасибо автору за великолепную идею и дизайн!
 
 Интерактивный и удобный счётчик квот для **Antigravity**, **Codex** и **Claude** — показывает не только текущий расход лимита, но и темп расхода с белой отметкой времени и пузырьковой анимацией.
 
