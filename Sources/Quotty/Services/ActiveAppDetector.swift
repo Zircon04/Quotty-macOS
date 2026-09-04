@@ -4,11 +4,14 @@ import Foundation
 @MainActor
 public final class ActiveAppDetector {
     public var onFamilyDetected: ((Family) -> Void)?
+    public var onAiStateChanged: ((_ isAiActive: Bool, _ family: Family?) -> Void)?
 
     private var timer: Timer?
     private var lastPid: pid_t = 0
     private var lastFamily: Family?
     private var isHostActive: Bool = false
+    private var isAiActive: Bool = false
+    private var hasInitialized: Bool = false
 
     public init() {
         setupWorkspaceObserver()
@@ -24,21 +27,19 @@ public final class ActiveAppDetector {
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
+            let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             Task { @MainActor [weak self] in
-                self?.checkForegroundApp()
+                self?.checkForegroundApp(targetApp: app)
             }
         }
     }
 
     private func startPeriodicCheck() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                // Re-poll if the active window is a terminal/IDE hosting a CLI
-                if self.isHostActive {
-                    self.checkForegroundApp(forceTree: true)
-                }
+                self.checkForegroundApp(forceTree: self.isHostActive)
             }
         }
     }
@@ -47,9 +48,15 @@ public final class ActiveAppDetector {
         checkForegroundApp(forceTree: true)
     }
 
-    private func checkForegroundApp(forceTree: Bool = false) {
-        guard let app = NSWorkspace.shared.frontmostApplication else { return }
+    private func checkForegroundApp(targetApp: NSRunningApplication? = nil, forceTree: Bool = false) {
+        guard let app = targetApp ?? NSWorkspace.shared.frontmostApplication else { return }
         let pid = app.processIdentifier
+
+        // Don't treat Quotty itself as deactivating the AI state (e.g. clicking settings window or menu bar)
+        if pid == ProcessInfo.processInfo.processIdentifier {
+            return
+        }
+
         let bundleId = (app.bundleIdentifier ?? "").lowercased()
         let appName = (app.localizedName ?? "").lowercased()
 
@@ -60,7 +67,7 @@ public final class ActiveAppDetector {
         // Direct tool matches
         if let direct = directMatch(bundleId: bundleId, appName: appName) {
             isHostActive = false
-            updateFamily(direct, pid: pid)
+            updateAiState(isAi: true, family: direct, pid: pid)
             return
         }
 
@@ -68,20 +75,37 @@ public final class ActiveAppDetector {
         if isHost(bundleId: bundleId, appName: appName) {
             isHostActive = true
             if let cliFamily = findCliInProcessTree(rootPid: pid) {
-                updateFamily(cliFamily, pid: pid)
+                updateAiState(isAi: true, family: cliFamily, pid: pid)
+            } else {
+                updateAiState(isAi: false, family: nil, pid: pid)
             }
             return
         }
 
         isHostActive = false
-        lastPid = pid
+        updateAiState(isAi: false, family: nil, pid: pid)
     }
 
-    private func updateFamily(_ family: Family, pid: pid_t) {
+    private func updateAiState(isAi: Bool, family: Family?, pid: pid_t) {
         lastPid = pid
-        if lastFamily != family {
+
+        let aiChanged = (isAi != isAiActive)
+        let familyChanged = (family != nil && lastFamily != family)
+        let shouldNotify = !hasInitialized || aiChanged || (isAi && familyChanged)
+
+        hasInitialized = true
+        isAiActive = isAi
+
+        if let family = family {
             lastFamily = family
+        }
+
+        if familyChanged, let family = family {
             onFamilyDetected?(family)
+        }
+
+        if shouldNotify {
+            onAiStateChanged?(isAi, family ?? lastFamily)
         }
     }
 

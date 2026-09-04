@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 @main
 @MainActor
@@ -8,9 +9,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var stripPanel: StripPanel!
     private var menuBarManager: MenuBarManager!
     private var settingsWindow: NSWindow?
+    private var cancellables = Set<AnyCancellable>()
 
     static func main() {
         let app = NSApplication.shared
+        if let icon = AppAssets.appIcon() {
+            app.applicationIconImage = icon
+        }
         let delegate = AppDelegate()
         app.delegate = delegate
         app.setActivationPolicy(.accessory) // No dock icon, menu bar + floating strip
@@ -29,19 +34,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.openSettings()
         }
 
-        if manager.isVisible {
+        if manager.isPanelVisible {
             stripPanel.orderFrontRegardless()
+        } else {
+            stripPanel.orderOut(nil)
         }
 
         // Observe visibility
-        _ = manager.$isVisible.sink { [weak self] visible in
-            guard let self = self else { return }
-            if visible {
-                self.stripPanel.orderFrontRegardless()
-            } else {
-                self.stripPanel.orderOut(nil)
+        manager.$isPanelVisible
+            .removeDuplicates()
+            .sink { [weak self] visible in
+                guard let self = self else { return }
+                if visible {
+                    self.stripPanel.orderFrontRegardless()
+                } else {
+                    self.stripPanel.orderOut(nil)
+                }
             }
-        }
+            .store(in: &cancellables)
     }
 
     func openSettings() {
@@ -52,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 440, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 530),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false

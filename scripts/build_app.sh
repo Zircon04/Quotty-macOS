@@ -26,6 +26,7 @@ cp ".build/release/Quotty" "$MACOS/Quotty"
 chmod +x "$MACOS/Quotty"
 
 install -m 644 "assets/AppIcon.icns" "$RESOURCES/AppIcon.icns"
+install -m 644 "assets/quotty.png" "$RESOURCES/quotty.png"
 
 cat << 'EOF' > "$CONTENTS/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
@@ -49,9 +50,9 @@ cat << 'EOF' > "$CONTENTS/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.3.1</string>
+    <string>1.3.2</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>2</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>

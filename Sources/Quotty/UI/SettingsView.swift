@@ -20,7 +20,14 @@ public struct SettingsView: View {
     public var body: some View {
         VStack(spacing: 0) {
             // Title bar
-            HStack {
+            HStack(spacing: 8) {
+                if let icon = AppAssets.appIcon() {
+                    Image(nsImage: icon)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 20, height: 20)
+                        .cornerRadius(5)
+                }
                 Text("Quotty — настройки")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(textCol)
@@ -47,7 +54,7 @@ public struct SettingsView: View {
                 .padding(.bottom, 16)
             }
         }
-        .frame(width: 440, height: 500)
+        .frame(width: 480, height: 530)
         .background(bgCol)
         .preferredColorScheme(.dark)
     }
@@ -88,11 +95,11 @@ public struct SettingsView: View {
                             manager.updateSettings(s)
                         }
                     )) {
-                        Text("Авто (по активному окну)").tag(ActiveMode.auto)
+                        Text("Авто (по окну)").tag(ActiveMode.auto)
                         Text("Закрепить").tag(ActiveMode.pinned)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 220)
+                    .frame(width: 230)
                 }
 
                 if manager.settings.activeMode == .pinned {
@@ -170,7 +177,29 @@ public struct SettingsView: View {
                         Text("Скрыть").tag(HeaderMode.hidden)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 220)
+                    .frame(width: 230)
+                }
+
+                Divider().background(cardHiCol)
+
+                // Auto-hide when not in AI window
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Показывать только в окне ИИ", isOn: Binding(
+                        get: { manager.settings.autoHideOnInactive },
+                        set: {
+                            var s = manager.settings
+                            s.autoHideOnInactive = $0
+                            manager.updateSettings(s)
+                        }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 12))
+                    .foregroundColor(textCol)
+
+                    Text("Скрывать полоску при переходе на другие приложения")
+                        .font(.system(size: 11))
+                        .foregroundColor(dimCol)
+                        .padding(.leading, 18)
                 }
 
                 Divider().background(cardHiCol)

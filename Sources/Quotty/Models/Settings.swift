@@ -34,8 +34,47 @@ public struct Settings: Codable, Sendable {
     public var activeMode: ActiveMode = .auto
     public var family: Family = .antigravity
     public var diagnostics: Bool = false
+    public var autoHideOnInactive: Bool = true
 
     public init() {}
+
+    enum CodingKeys: String, CodingKey {
+        case opacity, pos, pollSecs, animate, headerMode
+        case claudeEnabled, codexEnabled, antigravityEnabled
+        case activeMode, family, diagnostics, autoHideOnInactive
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.opacity = try container.decodeIfPresent(Double.self, forKey: .opacity) ?? 0.85
+        self.pos = try container.decodeIfPresent(Position.self, forKey: .pos)
+        self.pollSecs = try container.decodeIfPresent(Int.self, forKey: .pollSecs) ?? 60
+        self.animate = try container.decodeIfPresent(Bool.self, forKey: .animate) ?? true
+        self.headerMode = try container.decodeIfPresent(HeaderMode.self, forKey: .headerMode) ?? .full
+        self.claudeEnabled = try container.decodeIfPresent(Bool.self, forKey: .claudeEnabled) ?? true
+        self.codexEnabled = try container.decodeIfPresent(Bool.self, forKey: .codexEnabled) ?? true
+        self.antigravityEnabled = try container.decodeIfPresent(Bool.self, forKey: .antigravityEnabled) ?? true
+        self.activeMode = try container.decodeIfPresent(ActiveMode.self, forKey: .activeMode) ?? .auto
+        self.family = try container.decodeIfPresent(Family.self, forKey: .family) ?? .antigravity
+        self.diagnostics = try container.decodeIfPresent(Bool.self, forKey: .diagnostics) ?? false
+        self.autoHideOnInactive = try container.decodeIfPresent(Bool.self, forKey: .autoHideOnInactive) ?? true
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(opacity, forKey: .opacity)
+        try container.encodeIfPresent(pos, forKey: .pos)
+        try container.encode(pollSecs, forKey: .pollSecs)
+        try container.encode(animate, forKey: .animate)
+        try container.encode(headerMode, forKey: .headerMode)
+        try container.encode(claudeEnabled, forKey: .claudeEnabled)
+        try container.encode(codexEnabled, forKey: .codexEnabled)
+        try container.encode(antigravityEnabled, forKey: .antigravityEnabled)
+        try container.encode(activeMode, forKey: .activeMode)
+        try container.encode(family, forKey: .family)
+        try container.encode(diagnostics, forKey: .diagnostics)
+        try container.encode(autoHideOnInactive, forKey: .autoHideOnInactive)
+    }
 
     public static func settingsDirectory() -> URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!

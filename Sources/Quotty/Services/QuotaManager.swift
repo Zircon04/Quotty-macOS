@@ -7,6 +7,8 @@ public final class QuotaManager: ObservableObject {
     @Published public var activeFamily: Family
     @Published public var states: [Family: FetchState] = [:]
     @Published public var isVisible: Bool = true
+    @Published public var isAiActive: Bool = false
+    @Published public var isPanelVisible: Bool = true
 
     private let providers: [Family: QuotaProvider]
     private var detector: ActiveAppDetector?
@@ -32,19 +34,44 @@ public final class QuotaManager: ObservableObject {
         }
 
         setupDetector()
+        updatePanelVisibility()
         startPolling()
         fetchFamily(activeFamily, force: true)
     }
 
     private func setupDetector() {
         let det = ActiveAppDetector()
-        det.onFamilyDetected = { [weak self] detected in
+        det.onAiStateChanged = { [weak self] isAi, family in
             guard let self = self else { return }
-            if self.settings.activeMode == .auto && self.settings.isEnabled(detected) {
-                self.switchToFamily(detected)
+            let isEnabled = (family == nil) ? true : self.settings.isEnabled(family!)
+            let effectiveAiActive = isAi && isEnabled
+
+            self.isAiActive = effectiveAiActive
+
+            if isAi, let detected = family {
+                if self.settings.activeMode == .auto && self.settings.isEnabled(detected) {
+                    self.switchToFamily(detected)
+                }
             }
+
+            self.updatePanelVisibility()
         }
         self.detector = det
+        det.pollNow()
+    }
+
+    public func updatePanelVisibility() {
+        let shouldShow: Bool
+        if !isVisible {
+            shouldShow = false
+        } else if settings.autoHideOnInactive {
+            shouldShow = isAiActive
+        } else {
+            shouldShow = true
+        }
+        if isPanelVisible != shouldShow {
+            isPanelVisible = shouldShow
+        }
     }
 
     public func switchToFamily(_ family: Family) {
@@ -70,10 +97,12 @@ public final class QuotaManager: ObservableObject {
         if !settings.isEnabled(activeFamily) {
             activeFamily = settings.firstEnabled()
         }
+        updatePanelVisibility()
     }
 
     public func toggleVisibility() {
         isVisible.toggle()
+        updatePanelVisibility()
     }
 
     private func startPolling() {

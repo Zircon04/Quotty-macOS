@@ -18,11 +18,13 @@ public final class MenuBarManager: NSObject {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem.button {
-            let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
-            if let image = NSImage(systemSymbolName: "gauge.with.dots.needle.50percent", accessibilityDescription: "Quotty")?.withSymbolConfiguration(config) {
+            if let image = AppAssets.menuBarIcon() {
                 button.image = image
-            } else if let fallback = NSImage(systemSymbolName: "chart.bar.fill", accessibilityDescription: "Quotty") {
-                button.image = fallback
+            } else {
+                let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+                if let image = NSImage(systemSymbolName: "gauge.with.dots.needle.50percent", accessibilityDescription: "Quotty")?.withSymbolConfiguration(config) {
+                    button.image = image
+                }
             }
             button.toolTip = "Quotty — квоты ИИ-инструментов"
         }
