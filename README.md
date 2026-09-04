@@ -103,7 +103,7 @@ cd Quotty-macOS
 
 ---
 
-## Создано с ❤️
+## Портировано с ❤️
 
 - 💡 Оригинальная идея, дизайн и версия для Windows: **[@confeden](https://github.com/confeden)**
 - 🙋 Группа автора оригинала в Телеграм: **[@nova_txt](https://t.me/nova_txt)**
