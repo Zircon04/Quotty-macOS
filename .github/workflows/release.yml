@@ -32,5 +32,6 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
           name: Quotty for macOS v${{ github.event.inputs.tag_name || github.ref_name }}
+          body_path: RELEASE_NOTES.md
           files: Quotty-macOS.zip
           generate_release_notes: false
