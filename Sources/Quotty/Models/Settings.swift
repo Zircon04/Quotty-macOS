@@ -7,6 +7,12 @@ public enum HeaderMode: String, Codable, CaseIterable, Sendable {
     case hidden = "Hidden"
 }
 
+public enum ExhaustedMode: String, Codable, CaseIterable, Sendable {
+    case compact = "Compact"       // Без полосы (только тонкая строка со сбросом)
+    case hidden = "Hidden"         // Полностью скрыть
+    case full = "Full"             // С полной полосой
+}
+
 public enum ActiveMode: String, Codable, CaseIterable, Sendable {
     case auto = "Auto"
     case pinned = "Pinned"
@@ -35,13 +41,14 @@ public struct Settings: Codable, Sendable {
     public var family: Family = .antigravity
     public var diagnostics: Bool = false
     public var autoHideOnInactive: Bool = true
+    public var exhaustedMode: ExhaustedMode = .compact
 
     public init() {}
 
     enum CodingKeys: String, CodingKey {
         case opacity, pos, pollSecs, animate, headerMode
         case claudeEnabled, codexEnabled, antigravityEnabled
-        case activeMode, family, diagnostics, autoHideOnInactive
+        case activeMode, family, diagnostics, autoHideOnInactive, exhaustedMode
     }
 
     public init(from decoder: Decoder) throws {
@@ -58,6 +65,7 @@ public struct Settings: Codable, Sendable {
         self.family = try container.decodeIfPresent(Family.self, forKey: .family) ?? .antigravity
         self.diagnostics = try container.decodeIfPresent(Bool.self, forKey: .diagnostics) ?? false
         self.autoHideOnInactive = try container.decodeIfPresent(Bool.self, forKey: .autoHideOnInactive) ?? true
+        self.exhaustedMode = try container.decodeIfPresent(ExhaustedMode.self, forKey: .exhaustedMode) ?? .compact
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -74,6 +82,7 @@ public struct Settings: Codable, Sendable {
         try container.encode(family, forKey: .family)
         try container.encode(diagnostics, forKey: .diagnostics)
         try container.encode(autoHideOnInactive, forKey: .autoHideOnInactive)
+        try container.encode(exhaustedMode, forKey: .exhaustedMode)
     }
 
     public static func settingsDirectory() -> URL {

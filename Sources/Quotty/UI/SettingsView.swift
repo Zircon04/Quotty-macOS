@@ -182,6 +182,35 @@ public struct SettingsView: View {
 
                 Divider().background(cardHiCol)
 
+                // Exhausted Quotas Mode
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Исчерпанная квота (100%):")
+                            .font(.system(size: 12))
+                            .foregroundColor(dimCol)
+                        Text("Убирает полоску для компактности")
+                            .font(.system(size: 10))
+                            .foregroundColor(dimCol.opacity(0.8))
+                    }
+                    Spacer()
+                    Picker("", selection: Binding(
+                        get: { manager.settings.exhaustedMode },
+                        set: {
+                            var s = manager.settings
+                            s.exhaustedMode = $0
+                            manager.updateSettings(s)
+                        }
+                    )) {
+                        Text("Без полосы").tag(ExhaustedMode.compact)
+                        Text("Скрыть").tag(ExhaustedMode.hidden)
+                        Text("С полосой").tag(ExhaustedMode.full)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 230)
+                }
+
+                Divider().background(cardHiCol)
+
                 // Auto-hide when not in AI window
                 VStack(alignment: .leading, spacing: 4) {
                     Toggle("Показывать только в окне ИИ", isOn: Binding(
