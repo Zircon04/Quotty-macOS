@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release'
+        required: true
+        default: '1.4.2'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Quotty application
+        run: |
+          chmod +x scripts/build_app.sh
+          ./scripts/build_app.sh
+          ditto -c -k --sequesterRsrc --keepParent Quotty.app Quotty-macOS.zip
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
+          name: Quotty for macOS v${{ github.event.inputs.tag_name || github.ref_name }}
+          files: Quotty-macOS.zip
+          generate_release_notes: false
