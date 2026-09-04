@@ -51,6 +51,10 @@ public struct Limit: Sendable, Identifiable {
         self.usedPercent = usedPercent
         self.window = window
     }
+
+    public var isExhausted: Bool {
+        return usedPercent >= 99.5
+    }
 }
 
 public struct Snapshot: Sendable {

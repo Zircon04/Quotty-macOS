@@ -67,7 +67,16 @@ If a tool is not installed or not running, its row gracefully reports unavailabl
 ### Pre-built Application
 1. Download **`Quotty-macOS.zip`** from the [Releases](https://github.com/Zircon04/Quotty-macOS/releases) page.
 2. Unzip and drag `Quotty.app` to your **`/Applications`** folder.
-3. Launch it. On first launch, macOS Gatekeeper may ask for confirmation to open.
+3. Launch it.
+
+> [!TIP]
+> **If macOS shows: “Quotty is damaged and can’t be opened. You should move it to the Trash”**:  
+> This is a standard macOS Gatekeeper check for open-source apps downloaded from the browser without a paid Apple Developer certificate.  
+> To remove the quarantine attribute, open **Terminal** and run:
+> ```bash
+> xattr -cr /Applications/Quotty.app
+> ```
+> *(or if the app is still in Downloads: `xattr -cr ~/Downloads/Quotty.app`)*, then launch the app again.
 
 ---
 

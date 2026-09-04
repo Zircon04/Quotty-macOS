@@ -67,7 +67,17 @@
 ### Готовое приложение
 1. Скачайте архив **`Quotty-macOS.zip`** со страницы [Releases](https://github.com/Zircon04/Quotty-macOS/releases).
 2. Распакуйте и перетащите `Quotty.app` в папку **«Программы»** (`/Applications`).
-3. Запустите. При первом запуске macOS может спросить подтверждение открытия.
+3. Запустите.
+
+> [!TIP]
+> **Если macOS пишет: «“Quotty” повреждена, её следует переместить в Корзину»**  
+> *(«“Quotty” is damaged and can’t be opened. You should move it to the Trash»)*:  
+> Это стандартная блокировка macOS Gatekeeper для открытых программ, скачанных из браузера без платного сертификата Apple Developer.  
+> Чтобы снять карантин, откройте **Терминал** и выполните команду:
+> ```bash
+> xattr -cr /Applications/Quotty.app
+> ```
+> *(если приложение находится в Загрузках: `xattr -cr ~/Downloads/Quotty.app`)*, после чего запустите снова.
 
 ---
 

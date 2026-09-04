@@ -188,7 +188,7 @@ public struct SettingsView: View {
                         Text("Исчерпанная квота (100%):")
                             .font(.system(size: 12))
                             .foregroundColor(dimCol)
-                        Text("Убирает полоску для компактности")
+                        Text(exhaustedModeSubtitle)
                             .font(.system(size: 10))
                             .foregroundColor(dimCol.opacity(0.8))
                     }
@@ -355,6 +355,17 @@ public struct SettingsView: View {
             .padding(12)
             .background(cardCol)
             .cornerRadius(8)
+        }
+    }
+
+    private var exhaustedModeSubtitle: String {
+        switch manager.settings.exhaustedMode {
+        case .compact:
+            return "Только текст и сброс, без шкалы"
+        case .hidden:
+            return "Скрыть из списка, таймер в шапке"
+        case .full:
+            return "Показывать шкалу целиком"
         }
     }
 

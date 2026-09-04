@@ -65,4 +65,7 @@ cat << 'EOF' > "$CONTENTS/Info.plist"
 </plist>
 EOF
 
+echo "==> Signing $APP_NAME bundle (ad-hoc)..."
+codesign --force --deep -s - "$APP_DIR"
+
 echo "==> Quotty.app built successfully at: $APP_DIR"

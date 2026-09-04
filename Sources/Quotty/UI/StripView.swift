@@ -34,20 +34,20 @@ public struct StripView: View {
             
             let state = manager.currentState
             let allLimits = state.last?.limits ?? []
-            let activeLimits = allLimits.filter { $0.usedPercent < 100.0 }
-            let exhaustedLimits = allLimits.filter { $0.usedPercent >= 100.0 }
+            let activeLimits = allLimits.filter { !$0.isExhausted }
+            let exhaustedLimits = allLimits.filter { $0.isExhausted }
 
             let visibleLimits: [Limit] = {
                 switch manager.settings.exhaustedMode {
                 case .full, .compact:
                     return allLimits
                 case .hidden:
-                    return activeLimits.isEmpty ? allLimits : activeLimits
+                    return activeLimits
                 }
             }()
 
             let hiddenExhausted: [Limit] = {
-                if manager.settings.exhaustedMode == .hidden && !activeLimits.isEmpty {
+                if manager.settings.exhaustedMode == .hidden {
                     return exhaustedLimits
                 }
                 return []
@@ -57,8 +57,21 @@ public struct StripView: View {
                 headerView(now: now, animTime: animTime, hiddenExhausted: hiddenExhausted)
                 
                 if state.last != nil, (state.online || state.rateLimited) {
-                    ForEach(visibleLimits) { limit in
-                        limitRow(limit: limit, now: now, animTime: animTime)
+                    if visibleLimits.isEmpty && !allLimits.isEmpty {
+                        HStack(spacing: 5) {
+                            Image(systemName: "clock.badge.exclamationmark")
+                                .font(.system(size: 10.5))
+                                .foregroundColor(orangeCol)
+                            Text("Все квоты исчерпаны")
+                                .font(.system(size: 11))
+                                .foregroundColor(dimCol)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    } else {
+                        ForEach(visibleLimits) { limit in
+                            limitRow(limit: limit, now: now, animTime: animTime)
+                        }
                     }
                 } else if !state.online && state.ever {
                     Text("нет данных")
@@ -125,20 +138,30 @@ public struct StripView: View {
             }
             Spacer()
 
-            if let first = hiddenExhausted.first, let win = first.window {
-                let name = first.title.split(separator: " ").first.map(String.init) ?? first.title
-                HStack(spacing: 3) {
-                    Text("\(name) сброс:")
-                        .font(.system(size: 10))
-                        .foregroundColor(dimCol)
-                    Text(formatResetShort(resetsAt: win.resetsAt, now: now))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(orangeCol)
+            if !hiddenExhausted.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(hiddenExhausted) { item in
+                        let name = item.title.split(separator: " ").first.map(String.init) ?? item.title
+                        HStack(spacing: 3) {
+                            Text("\(name) сброс:")
+                                .font(.system(size: 10))
+                                .foregroundColor(dimCol)
+                            if let win = item.window {
+                                Text(formatResetShort(resetsAt: win.resetsAt, now: now))
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(orangeCol)
+                            } else {
+                                Text("100%")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(orangeCol)
+                            }
+                        }
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(Color(red: 214/255, green: 150/255, blue: 74/255).opacity(0.15))
+                        .cornerRadius(4)
+                    }
                 }
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1.5)
-                .background(Color(red: 214/255, green: 150/255, blue: 74/255).opacity(0.15))
-                .cornerRadius(4)
             }
 
             statusView(state: state, animTime: animTime)
@@ -183,7 +206,7 @@ public struct StripView: View {
     private func limitRow(limit: Limit, now: Date, animTime: Double) -> some View {
         let useFrac = min(1.0, max(0.0, limit.usedPercent / 100.0))
         let timeFrac = limit.window?.markerFrac(now: now)
-        let exhausted = limit.usedPercent >= 100.0
+        let exhausted = limit.isExhausted
         let isCompact = exhausted && manager.settings.exhaustedMode == .compact
         let overspend = !exhausted && (timeFrac != nil) && (useFrac > (timeFrac! + 0.02))
 
