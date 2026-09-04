@@ -329,7 +329,6 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
 
         for i in 0..<2 {
             guard let remaining = groupRemaining[i] else { continue }
-            let usedPercent = (1.0 - remaining) * 100.0
 
             let isWeekly = (groupReset[i]?.timeIntervalSince(now) ?? 0) > 24 * 3600
             let badgeText: String? = {
@@ -339,6 +338,9 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
                 }
                 return nil
             }()
+
+            // 5-hour bar: when model has weekly reset (>24h), session quota is 0% used
+            let usedPercent = isWeekly ? 0.0 : ((1.0 - remaining) * 100.0)
 
             // 5-hour session window
             let window = LimitWindow(resetsAt: fiveHourReset, lengthSeconds: windowSecs, now: now)
