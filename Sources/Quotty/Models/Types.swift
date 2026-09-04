@@ -45,11 +45,13 @@ public struct Limit: Sendable, Identifiable {
     public let title: String
     public let usedPercent: Double
     public let window: LimitWindow?
+    public let badge: String?
 
-    public init(title: String, usedPercent: Double, window: LimitWindow?) {
+    public init(title: String, usedPercent: Double, window: LimitWindow?, badge: String? = nil) {
         self.title = title
         self.usedPercent = usedPercent
         self.window = window
+        self.badge = badge
     }
 
     public var isExhausted: Bool {

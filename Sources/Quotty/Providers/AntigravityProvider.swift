@@ -324,18 +324,30 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         let groupTitles = ["Gemini", "Claude / GPT"]
         var limits: [Limit] = []
 
+        // 5-hour rolling session reset (Gemini's reset or 5 hours from now)
+        let fiveHourReset = groupReset[0] ?? now.addingTimeInterval(windowSecs)
+
         for i in 0..<2 {
             guard let remaining = groupRemaining[i] else { continue }
             let usedPercent = (1.0 - remaining) * 100.0
-            let resetsAt = groupReset[i] ?? now.addingTimeInterval(windowSecs)
-            let diff = resetsAt.timeIntervalSince(now)
-            let actualWindowSecs: TimeInterval = (diff > 24 * 3600) ? (7 * 86400) : windowSecs
-            let window = LimitWindow(resetsAt: resetsAt, lengthSeconds: actualWindowSecs, now: now)
+
+            let isWeekly = (groupReset[i]?.timeIntervalSince(now) ?? 0) > 24 * 3600
+            let badgeText: String? = {
+                if isWeekly {
+                    let wRem = Int(round(remaining * 100))
+                    return "нед. \(wRem)%"
+                }
+                return nil
+            }()
+
+            // 5-hour session window
+            let window = LimitWindow(resetsAt: fiveHourReset, lengthSeconds: windowSecs, now: now)
 
             limits.append(Limit(
                 title: groupTitles[i],
                 usedPercent: usedPercent,
-                window: window
+                window: window,
+                badge: badgeText
             ))
         }
 

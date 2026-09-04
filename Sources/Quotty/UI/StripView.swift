@@ -218,10 +218,21 @@ public struct StripView: View {
 
         VStack(spacing: isCompact ? 0 : 4) {
             // Text line
-            HStack {
+            HStack(spacing: 6) {
                 Text(limit.title)
                     .font(.system(size: 12.5, weight: .medium))
                     .foregroundColor(isCompact ? dimCol : strongCol)
+
+                if let badge = limit.badge {
+                    Text(badge)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(orangeCol)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(orangeCol.opacity(0.15))
+                        .cornerRadius(3)
+                }
+
                 Spacer()
                 Text(String(format: "%.0f%%", limit.usedPercent))
                     .font(.system(size: 12, weight: .semibold))
