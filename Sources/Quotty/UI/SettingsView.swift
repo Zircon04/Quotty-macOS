@@ -54,7 +54,7 @@ public struct SettingsView: View {
                 .padding(.bottom, 16)
             }
         }
-        .frame(width: 480, height: 530)
+        .frame(width: 480, height: 560)
         .background(bgCol)
         .preferredColorScheme(.dark)
     }
@@ -245,6 +245,44 @@ public struct SettingsView: View {
                 .toggleStyle(.checkbox)
                 .font(.system(size: 12))
                 .foregroundColor(textCol)
+
+                Divider().background(cardHiCol)
+
+                // Dock settings
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Показывать иконку в Dock", isOn: Binding(
+                        get: { manager.settings.showInDock },
+                        set: {
+                            var s = manager.settings
+                            s.showInDock = $0
+                            manager.updateSettings(s)
+                        }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 12))
+                    .foregroundColor(textCol)
+
+                    Text("Отображать Quotty на панели Dock и в переключателе Cmd+Tab")
+                        .font(.system(size: 11))
+                        .foregroundColor(dimCol)
+                        .padding(.leading, 18)
+
+                    if manager.settings.showInDock {
+                        Toggle("Бейдж с остатком квоты на значке", isOn: Binding(
+                            get: { manager.settings.showDockBadge },
+                            set: {
+                                var s = manager.settings
+                                s.showDockBadge = $0
+                                manager.updateSettings(s)
+                            }
+                        ))
+                        .toggleStyle(.checkbox)
+                        .font(.system(size: 12))
+                        .foregroundColor(textCol)
+                        .padding(.leading, 18)
+                        .padding(.top, 2)
+                    }
+                }
             }
         }
     }

@@ -173,4 +173,10 @@ public final class QuotaManager: ObservableObject {
     public var currentState: FetchState {
         return states[activeFamily] ?? FetchState()
     }
+
+    public var lowestRemainingPercent: Int? {
+        guard let snapshot = currentState.last, !snapshot.limits.isEmpty else { return nil }
+        let maxUsed = snapshot.limits.map(\.usedPercent).max() ?? 0.0
+        return max(0, min(100, Int(round(100.0 - maxUsed))))
+    }
 }

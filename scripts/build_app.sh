@@ -38,7 +38,7 @@ cat << 'EOF' > "$CONTENTS/Info.plist"
     <key>CFBundleExecutable</key>
     <string>Quotty</string>
     <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
+    <string>AppIcon.icns</string>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>

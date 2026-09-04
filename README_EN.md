@@ -35,10 +35,8 @@ Supports three tool families:
   - 🟠 **orange** — quota fully depleted (100%).
 - **Accurate reset countdown** and exact rollover timestamp.
 - **Auto-switching by active window** — including CLI tools running in terminal emulators (Terminal, iTerm2, Alacritty, Warp, Ghostty, Kitty, VS Code, Cursor).
-- **macOS Menu Bar item** with quick tool switching, refresh, and settings.
-- **Customizable appearance**: opacity slider (with 50%, 80%, 100% presets), header mode (Environment + Plan / Family only / Hidden).
-- **Does not clutter the Dock** (`LSUIElement` accessory app).
-- **Controls**: Drag with Left-Click anywhere, context menu & settings with Right-Click or from the Menu Bar.
+- **Dock & Menu Bar Modes**: runs as a lightweight menu bar utility by default, with an optional toggle in Settings to show it in the Dock with a live quota badge and Dock context menu.
+- **Controls**: Drag with Left-Click anywhere, context menu & settings with Right-Click, via the Menu Bar icon, or directly from the Dock.
 
 ---
 
