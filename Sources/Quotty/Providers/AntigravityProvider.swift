@@ -284,12 +284,13 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
                 guard let label = cfg["label"] as? String,
                       let quotaInfo = cfg["quotaInfo"] as? [String: Any] else { continue }
                 
-                let remValue: Double? = {
+                let remaining: Double = {
                     if let d = quotaInfo["remainingFraction"] as? Double { return d }
                     if let s = quotaInfo["remainingFraction"] as? String, let d = Double(s) { return d }
-                    return nil
+                    // In proto3 JSON, default float/double 0.0 is omitted.
+                    // When quotaInfo is present, missing remainingFraction indicates 0.0 (exhausted / 100% used).
+                    return 0.0
                 }()
-                guard let remaining = remValue else { continue }
 
                 let resetDate: Date? = {
                     if let s = quotaInfo["resetTime"] as? String {
