@@ -328,7 +328,9 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
             guard let remaining = groupRemaining[i] else { continue }
             let usedPercent = (1.0 - remaining) * 100.0
             let resetsAt = groupReset[i] ?? now.addingTimeInterval(windowSecs)
-            let window = LimitWindow(resetsAt: resetsAt, lengthSeconds: windowSecs, now: now)
+            let diff = resetsAt.timeIntervalSince(now)
+            let actualWindowSecs: TimeInterval = (diff > 24 * 3600) ? (7 * 86400) : windowSecs
+            let window = LimitWindow(resetsAt: resetsAt, lengthSeconds: actualWindowSecs, now: now)
 
             limits.append(Limit(
                 title: groupTitles[i],
