@@ -35,3 +35,20 @@ jobs:
           body_path: RELEASE_NOTES.md
           files: Quotty-macOS.zip
           generate_release_notes: false
+
+      - name: Update Release Description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY=$(cat RELEASE_NOTES.md | python3 -c "import sys, json; print(json.dumps(sys.stdin.read()))")
+          TAG="${{ github.event.inputs.tag_name || github.ref_name }}"
+          RELEASE_ID=$(curl -s -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG" | python3 -c "import sys, json; print(json.load(sys.stdin).get('id', ''))")
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Updating release $RELEASE_ID..."
+            curl -s -X PATCH \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID" \
+              -d "{\"body\": $BODY}"
+          fi
+
