@@ -45,6 +45,7 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = 5.0
         config.timeoutIntervalForResource = 5.0
+        config.connectionProxyDictionary = [:]
         let delegate = LocalhostCertDelegate()
         self.session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
     }
@@ -60,7 +61,7 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         var lastError: Error?
         for ep in endpoints {
             do {
-                let snapshot = try await callGetUserStatus(endpoint: ep)
+                let snapshot = try await fetchSnapshot(endpoint: ep)
                 await cache.recordSuccess(endpoint: ep)
                 return snapshot
             } catch {
@@ -69,6 +70,16 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         }
 
         throw FetchError("Antigravity не отвечает (\(lastError?.localizedDescription ?? "ошибка подключения"))")
+    }
+
+    private func fetchSnapshot(endpoint: Endpoint) async throws -> Snapshot {
+        let (planName, fallbackLimits) = try await callGetUserStatus(endpoint: endpoint)
+
+        if let summaryLimits = try? await callRetrieveUserQuotaSummary(endpoint: endpoint), !summaryLimits.isEmpty {
+            return Snapshot(family: .antigravity, plan: planName, limits: summaryLimits)
+        }
+
+        return Snapshot(family: .antigravity, plan: planName, limits: fallbackLimits)
     }
 
     private func discoverEndpoints() -> [Endpoint] {
@@ -229,7 +240,133 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         return token.isEmpty ? nil : String(token)
     }
 
-    private func callGetUserStatus(endpoint: Endpoint) async throws -> Snapshot {
+    private func callRetrieveUserQuotaSummary(endpoint: Endpoint) async throws -> [Limit] {
+        guard let url = URL(string: "https://127.0.0.1:\(endpoint.port)/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary") else {
+            throw FetchError("Invalid URL")
+        }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(endpoint.csrf, forHTTPHeaderField: "X-Codeium-Csrf-Token")
+        req.setValue("1", forHTTPHeaderField: "Connect-Protocol-Version")
+        req.httpBody = Data(#"{"metadata":{"ideName":"antigravity"}}"#.utf8)
+
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw FetchError("Status \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw FetchError("Invalid JSON")
+        }
+
+        let container: [String: Any]
+        if let resp = json["response"] as? [String: Any] {
+            container = resp
+        } else {
+            container = json
+        }
+
+        guard let groups = container["groups"] as? [[String: Any]], !groups.isEmpty else {
+            throw FetchError("No groups found")
+        }
+
+        return parseQuotaSummaryGroups(groups)
+    }
+
+    private func parseQuotaSummaryGroups(_ groups: [[String: Any]]) -> [Limit] {
+        let now = Date()
+        var limits: [Limit] = []
+
+        let isoFractional = ISO8601DateFormatter()
+        isoFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let isoStandard = ISO8601DateFormatter()
+
+        for group in groups {
+            guard let displayName = group["displayName"] as? String else { continue }
+            let title: String = {
+                let lower = displayName.lowercased()
+                if lower.contains("gemini") {
+                    return "Gemini"
+                } else if lower.contains("claude") || lower.contains("gpt") {
+                    return "Claude / GPT"
+                }
+                return displayName
+            }()
+
+            guard let buckets = group["buckets"] as? [[String: Any]] else { continue }
+
+            var fiveHourRemaining: Double?
+            var fiveHourResetDate: Date?
+            var weeklyRemaining: Double?
+            var weeklyResetDate: Date?
+
+            for b in buckets {
+                let bucketId = (b["bucketId"] as? String ?? "").lowercased()
+                let window = (b["window"] as? String ?? "").lowercased()
+
+                let rem: Double = {
+                    if let d = b["remainingFraction"] as? Double { return d }
+                    if let s = b["remainingFraction"] as? String, let d = Double(s) { return d }
+                    if let num = b["remainingFraction"] as? NSNumber { return num.doubleValue }
+                    return 0.0
+                }()
+
+                let reset: Date? = {
+                    if let s = b["resetTime"] as? String {
+                        if let d = isoFractional.date(from: s) { return d }
+                        if let d = isoStandard.date(from: s) { return d }
+                    }
+                    if let num = b["resetTime"] as? Double {
+                        let secs = num > 100_000_000_000 ? num / 1000 : num
+                        return Date(timeIntervalSince1970: secs)
+                    }
+                    return nil
+                }()
+
+                if bucketId.contains("5h") || window == "5h" {
+                    fiveHourRemaining = rem
+                    fiveHourResetDate = reset
+                } else if bucketId.contains("weekly") || window == "weekly" {
+                    weeklyRemaining = rem
+                    weeklyResetDate = reset
+                }
+            }
+
+            let mainRemaining = fiveHourRemaining ?? weeklyRemaining ?? 1.0
+            let mainReset = fiveHourResetDate ?? weeklyResetDate ?? now.addingTimeInterval(5 * 3600)
+            let is5Hour = (fiveHourRemaining != nil)
+            let windowSecs: TimeInterval = is5Hour ? (5 * 3600) : (7 * 24 * 3600)
+
+            let usedPercent = max(0.0, min(100.0, (1.0 - mainRemaining) * 100.0))
+            let window = LimitWindow(resetsAt: mainReset, lengthSeconds: windowSecs, now: now)
+
+            let badgeText: String? = {
+                if let wRem = weeklyRemaining {
+                    let wPct = Int(round(wRem * 100))
+                    return "нед. \(wPct)%"
+                }
+                return nil
+            }()
+
+            limits.append(Limit(
+                title: title,
+                usedPercent: usedPercent,
+                window: window,
+                badge: badgeText
+            ))
+        }
+
+        limits.sort { l1, l2 in
+            if l1.title.contains("Gemini") && !l2.title.contains("Gemini") { return true }
+            return false
+        }
+
+        return limits
+    }
+
+    private func callGetUserStatus(endpoint: Endpoint) async throws -> (String, [Limit]) {
         guard let url = URL(string: "https://127.0.0.1:\(endpoint.port)/exa.language_server_pb.LanguageServerService/GetUserStatus") else {
             throw FetchError("Invalid URL")
         }
@@ -257,7 +394,7 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         return parseUserStatus(userStatus)
     }
 
-    private func parseUserStatus(_ status: [String: Any]) -> Snapshot {
+    private func parseUserStatus(_ status: [String: Any]) -> (String, [Limit]) {
         let now = Date()
         let windowSecs: TimeInterval = 5 * 3600 // 5 hours
 
@@ -324,7 +461,6 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
         let groupTitles = ["Gemini", "Claude / GPT"]
         var limits: [Limit] = []
 
-        // 5-hour rolling session reset (Gemini's reset or 5 hours from now)
         let fiveHourReset = groupReset[0] ?? now.addingTimeInterval(windowSecs)
 
         for i in 0..<2 {
@@ -339,10 +475,7 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
                 return nil
             }()
 
-            // 5-hour bar: when model has weekly reset (>24h), session quota is 0% used
             let usedPercent = isWeekly ? 0.0 : ((1.0 - remaining) * 100.0)
-
-            // 5-hour session window
             let window = LimitWindow(resetsAt: fiveHourReset, lengthSeconds: windowSecs, now: now)
 
             limits.append(Limit(
@@ -353,6 +486,6 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
             ))
         }
 
-        return Snapshot(family: .antigravity, plan: planName, limits: limits)
+        return (planName, limits)
     }
 }

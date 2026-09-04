@@ -207,7 +207,7 @@ public struct StripView: View {
         let useFrac = min(1.0, max(0.0, limit.usedPercent / 100.0))
         let timeFrac = limit.window?.markerFrac(now: now)
         let exhausted = limit.isExhausted
-        let isCompact = exhausted && manager.settings.exhaustedMode == .compact
+        let isCompact = manager.settings.compactMode || (exhausted && manager.settings.exhaustedMode == .compact)
         let overspend = !exhausted && (timeFrac != nil) && (useFrac > (timeFrac! + 0.02))
 
         let pctCol: Color = {
@@ -221,9 +221,9 @@ public struct StripView: View {
             HStack(spacing: 6) {
                 Text(limit.title)
                     .font(.system(size: 12.5, weight: .medium))
-                    .foregroundColor(isCompact ? dimCol : strongCol)
+                    .foregroundColor(exhausted ? dimCol : strongCol)
 
-                if let badge = limit.badge {
+                if manager.settings.showWeeklyLimits, let badge = limit.badge {
                     Text(badge)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(orangeCol)
@@ -380,6 +380,12 @@ public struct StripView: View {
 
         Button("Обновить сейчас") {
             manager.refreshNow()
+        }
+
+        Button(manager.settings.compactMode ? "Обычный режим (с полосами)" : "Компактный режим (без полос)") {
+            var s = manager.settings
+            s.compactMode.toggle()
+            manager.updateSettings(s)
         }
 
         Divider()

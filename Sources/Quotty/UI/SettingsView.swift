@@ -233,6 +233,50 @@ public struct SettingsView: View {
 
                 Divider().background(cardHiCol)
 
+                // Compact mode
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Компактный режим (без полос)", isOn: Binding(
+                        get: { manager.settings.compactMode },
+                        set: {
+                            var s = manager.settings
+                            s.compactMode = $0
+                            manager.updateSettings(s)
+                        }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 12))
+                    .foregroundColor(textCol)
+
+                    Text("Скрывать графические полосы для всех моделей, оставляя только текст")
+                        .font(.system(size: 11))
+                        .foregroundColor(dimCol)
+                        .padding(.leading, 18)
+                }
+
+                Divider().background(cardHiCol)
+
+                // Show weekly limits
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Показывать остаток недельных лимитов", isOn: Binding(
+                        get: { manager.settings.showWeeklyLimits },
+                        set: {
+                            var s = manager.settings
+                            s.showWeeklyLimits = $0
+                            manager.updateSettings(s)
+                        }
+                    ))
+                    .toggleStyle(.checkbox)
+                    .font(.system(size: 12))
+                    .foregroundColor(textCol)
+
+                    Text("Отображать бейдж [нед. Х%] рядом с названием модели")
+                        .font(.system(size: 11))
+                        .foregroundColor(dimCol)
+                        .padding(.leading, 18)
+                }
+
+                Divider().background(cardHiCol)
+
                 // Animation
                 Toggle("Анимация пузырьков (при расходе с запасом)", isOn: Binding(
                     get: { manager.settings.animate },

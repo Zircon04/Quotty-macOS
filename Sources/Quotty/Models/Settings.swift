@@ -44,6 +44,8 @@ public struct Settings: Codable, Sendable {
     public var exhaustedMode: ExhaustedMode = .compact
     public var showInDock: Bool = false
     public var showDockBadge: Bool = true
+    public var showWeeklyLimits: Bool = true
+    public var compactMode: Bool = false
 
     public init() {}
 
@@ -51,7 +53,7 @@ public struct Settings: Codable, Sendable {
         case opacity, pos, pollSecs, animate, headerMode
         case claudeEnabled, codexEnabled, antigravityEnabled
         case activeMode, family, diagnostics, autoHideOnInactive, exhaustedMode
-        case showInDock, showDockBadge
+        case showInDock, showDockBadge, showWeeklyLimits, compactMode
     }
 
     public init(from decoder: Decoder) throws {
@@ -71,6 +73,8 @@ public struct Settings: Codable, Sendable {
         self.exhaustedMode = try container.decodeIfPresent(ExhaustedMode.self, forKey: .exhaustedMode) ?? .compact
         self.showInDock = try container.decodeIfPresent(Bool.self, forKey: .showInDock) ?? false
         self.showDockBadge = try container.decodeIfPresent(Bool.self, forKey: .showDockBadge) ?? true
+        self.showWeeklyLimits = try container.decodeIfPresent(Bool.self, forKey: .showWeeklyLimits) ?? true
+        self.compactMode = try container.decodeIfPresent(Bool.self, forKey: .compactMode) ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -90,6 +94,8 @@ public struct Settings: Codable, Sendable {
         try container.encode(exhaustedMode, forKey: .exhaustedMode)
         try container.encode(showInDock, forKey: .showInDock)
         try container.encode(showDockBadge, forKey: .showDockBadge)
+        try container.encode(showWeeklyLimits, forKey: .showWeeklyLimits)
+        try container.encode(compactMode, forKey: .compactMode)
     }
 
     public static func settingsDirectory() -> URL {
