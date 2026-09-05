@@ -222,7 +222,7 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
             let slice = length > 131072 ? data.subdata(in: (length - 131072)..<length) : data
             guard let text = String(data: slice, encoding: .utf8) else { continue }
 
-            if let csrf = extractLastAfter(text: text, marker: "--csrf_token "),
+            if let csrf = extractLastAfter(text: text, marker: "--csrf_token"),
                let portStr = extractLastAfter(text: text, marker: "127.0.0.1:"),
                let port = UInt16(portStr.prefix(while: { $0.isNumber })) {
                 results.append(Endpoint(port: port, csrf: csrf))
@@ -234,7 +234,8 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
     private func extractLastAfter(text: String, marker: String) -> String? {
         guard let range = text.range(of: marker, options: .backwards) else { return nil }
         let after = text[range.upperBound...]
-        let token = after.prefix { char in
+        let trimmed = after.trimmingCharacters(in: CharacterSet(charactersIn: " =\""))
+        let token = trimmed.prefix { char in
             char.isLetter || char.isNumber || char == "-"
         }
         return token.isEmpty ? nil : String(token)
@@ -334,15 +335,38 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
                 }
             }
 
-            let mainRemaining = fiveHourRemaining ?? weeklyRemaining ?? 1.0
-            let mainReset = fiveHourResetDate ?? weeklyResetDate ?? now.addingTimeInterval(5 * 3600)
-            let is5Hour = (fiveHourRemaining != nil)
-            let windowSecs: TimeInterval = is5Hour ? (5 * 3600) : (7 * 24 * 3600)
+            let weeklyQuota: WeeklyQuota? = (weeklyRemaining != nil) ? WeeklyQuota(
+                remainingPercent: (weeklyRemaining! * 100.0),
+                resetsAt: weeklyResetDate
+            ) : nil
 
-            let usedPercent = max(0.0, min(100.0, (1.0 - mainRemaining) * 100.0))
-            let window = LimitWindow(resetsAt: mainReset, lengthSeconds: windowSecs, now: now)
+            let weeklyExhausted = (weeklyRemaining != nil && weeklyRemaining! <= 0.0)
+
+            let usedPercent: Double = {
+                if weeklyExhausted {
+                    return 100.0
+                }
+                let rem = fiveHourRemaining ?? weeklyRemaining ?? 1.0
+                return max(0.0, min(100.0, (1.0 - rem) * 100.0))
+            }()
+
+            let window: LimitWindow? = {
+                if weeklyExhausted {
+                    // A weekly lockout supersedes the session. Never invent a reset time.
+                    guard let reset = weeklyResetDate else { return nil }
+                    return LimitWindow(resetsAt: reset, lengthSeconds: 7 * 24 * 3600, now: now)
+                } else {
+                    let is5Hour = (fiveHourRemaining != nil)
+                    let reset = fiveHourResetDate ?? weeklyResetDate ?? now.addingTimeInterval(is5Hour ? 5 * 3600 : 7 * 24 * 3600)
+                    let windowSecs: TimeInterval = is5Hour ? (5 * 3600) : (7 * 24 * 3600)
+                    return LimitWindow(resetsAt: reset, lengthSeconds: windowSecs, now: now)
+                }
+            }()
 
             let badgeText: String? = {
+                if weeklyExhausted {
+                    return nil
+                }
                 if let wRem = weeklyRemaining {
                     let wPct = Int(round(wRem * 100))
                     return "нед. \(wPct)%"
@@ -354,7 +378,8 @@ public final class AntigravityProvider: QuotaProvider, @unchecked Sendable {
                 title: title,
                 usedPercent: usedPercent,
                 window: window,
-                badge: badgeText
+                badge: badgeText,
+                weekly: weeklyQuota
             ))
         }
 

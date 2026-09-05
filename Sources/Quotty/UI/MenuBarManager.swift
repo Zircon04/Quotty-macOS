@@ -26,26 +26,28 @@ public final class MenuBarManager: NSObject {
                     button.image = image
                 }
             }
-            button.toolTip = "Quotty — квоты ИИ-инструментов"
         }
 
         rebuildMenu()
     }
 
     public func rebuildMenu() {
+        let lang = manager.settings.language
+        statusItem.button?.toolTip = lang.text("Quotty — квоты ИИ-инструментов", "Quotty — AI quota strip")
+
         let menu = NSMenu()
 
         // Status line
         let state = manager.currentState
         let statusTitle: String = {
             if state.online {
-                return "\(manager.activeFamily.name) — Онлайн"
+                return lang.text("\(manager.activeFamily.name) — Онлайн", "\(manager.activeFamily.name) — Online")
             } else if state.rateLimited {
-                return "\(manager.activeFamily.name) — Подключение…"
+                return lang.text("\(manager.activeFamily.name) — Подключение…", "\(manager.activeFamily.name) — Connecting…")
             } else if state.ever {
-                return "\(manager.activeFamily.name) — Оффлайн"
+                return lang.text("\(manager.activeFamily.name) — Оффлайн", "\(manager.activeFamily.name) — Offline")
             } else {
-                return "\(manager.activeFamily.name) — Загрузка…"
+                return lang.text("\(manager.activeFamily.name) — Загрузка…", "\(manager.activeFamily.name) — Loading…")
             }
         }()
         let statusItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
@@ -63,32 +65,35 @@ public final class MenuBarManager: NSObject {
             item.state = (manager.activeFamily == f) ? .on : .off
             switchMenu.addItem(item)
         }
-        let switchParent = NSMenuItem(title: "Выбрать инструмент", action: nil, keyEquivalent: "")
+        let switchParent = NSMenuItem(title: lang.text("Выбрать инструмент", "Select tool"), action: nil, keyEquivalent: "")
         switchParent.submenu = switchMenu
         menu.addItem(switchParent)
 
         menu.addItem(NSMenuItem.separator())
 
         // Actions
-        let refreshItem = NSMenuItem(title: "Обновить сейчас", action: #selector(didTapRefresh), keyEquivalent: "r")
+        let refreshItem = NSMenuItem(title: lang.text("Обновить сейчас", "Refresh now"), action: #selector(didTapRefresh), keyEquivalent: "r")
         refreshItem.target = self
         menu.addItem(refreshItem)
 
-        let toggleItem = NSMenuItem(title: manager.isVisible ? "Скрыть полоску" : "Показать полоску", action: #selector(didTapToggleVisibility), keyEquivalent: "h")
+        let toggleTitle = manager.isVisible ?
+            lang.text("Скрыть полоску", "Hide strip") :
+            lang.text("Показать полоску", "Show strip")
+        let toggleItem = NSMenuItem(title: toggleTitle, action: #selector(didTapToggleVisibility), keyEquivalent: "h")
         toggleItem.target = self
         menu.addItem(toggleItem)
 
         menu.addItem(NSMenuItem.separator())
 
         // Settings
-        let settingsItem = NSMenuItem(title: "Настройки…", action: #selector(didTapSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: lang.text("Настройки…", "Settings…"), action: #selector(didTapSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
 
         menu.addItem(NSMenuItem.separator())
 
         // Quit
-        let quitItem = NSMenuItem(title: "Выход", action: #selector(didTapQuit), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: lang.text("Выход", "Quit"), action: #selector(didTapQuit), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 

@@ -67,10 +67,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        // Observe dock badge updates
+        // Observe dock badge and menu bar updates
         Publishers.CombineLatest3(manager.$states, manager.$settings, manager.$activeFamily)
             .sink { [weak self] _ in
                 self?.updateDockBadge()
+                self?.menuBarManager?.rebuildMenu()
             }
             .store(in: &cancellables)
     }
@@ -97,21 +98,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
         guard let manager = quotaManager else { return nil }
+        let lang = manager.settings.language
         let menu = NSMenu()
 
         // Status header
         let state = manager.currentState
         let statusTitle: String = {
             if let rem = manager.lowestRemainingPercent {
-                return "\(manager.activeFamily.name): \(rem)% квоты"
+                return lang.text("\(manager.activeFamily.name): \(rem)% квоты", "\(manager.activeFamily.name): \(rem)% quota")
             } else if state.online {
-                return "\(manager.activeFamily.name) — Онлайн"
+                return lang.text("\(manager.activeFamily.name) — Онлайн", "\(manager.activeFamily.name) — Online")
             } else if state.rateLimited {
-                return "\(manager.activeFamily.name) — Подключение…"
+                return lang.text("\(manager.activeFamily.name) — Подключение…", "\(manager.activeFamily.name) — Connecting…")
             } else if state.ever {
-                return "\(manager.activeFamily.name) — Оффлайн"
+                return lang.text("\(manager.activeFamily.name) — Оффлайн", "\(manager.activeFamily.name) — Offline")
             } else {
-                return "\(manager.activeFamily.name) — Загрузка…"
+                return lang.text("\(manager.activeFamily.name) — Загрузка…", "\(manager.activeFamily.name) — Loading…")
             }
         }()
         let statusItem = NSMenuItem(title: statusTitle, action: nil, keyEquivalent: "")
@@ -129,27 +131,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.state = (manager.activeFamily == f) ? .on : .off
             switchMenu.addItem(item)
         }
-        let switchParent = NSMenuItem(title: "Выбрать инструмент", action: nil, keyEquivalent: "")
+        let switchParent = NSMenuItem(title: lang.text("Выбрать инструмент", "Select tool"), action: nil, keyEquivalent: "")
         switchParent.submenu = switchMenu
         menu.addItem(switchParent)
 
         menu.addItem(NSMenuItem.separator())
 
         // Toggle panel
-        let toggleTitle = manager.isVisible ? "Скрыть полоску" : "Показать полоску"
+        let toggleTitle = manager.isVisible ?
+            lang.text("Скрыть полоску", "Hide strip") :
+            lang.text("Показать полоску", "Show strip")
         let toggleItem = NSMenuItem(title: toggleTitle, action: #selector(didTapTogglePanelFromDock), keyEquivalent: "")
         toggleItem.target = self
         menu.addItem(toggleItem)
 
         // Refresh
-        let refreshItem = NSMenuItem(title: "Обновить сейчас", action: #selector(didTapRefreshFromDock), keyEquivalent: "")
+        let refreshItem = NSMenuItem(title: lang.text("Обновить сейчас", "Refresh now"), action: #selector(didTapRefreshFromDock), keyEquivalent: "")
         refreshItem.target = self
         menu.addItem(refreshItem)
 
         menu.addItem(NSMenuItem.separator())
 
         // Settings
-        let settingsItem = NSMenuItem(title: "Настройки…", action: #selector(didTapSettingsFromDock), keyEquivalent: "")
+        let settingsItem = NSMenuItem(title: lang.text("Настройки…", "Settings…"), action: #selector(didTapSettingsFromDock), keyEquivalent: "")
         settingsItem.target = self
         menu.addItem(settingsItem)
 

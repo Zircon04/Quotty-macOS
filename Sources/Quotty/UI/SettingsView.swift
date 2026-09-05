@@ -18,6 +18,8 @@ public struct SettingsView: View {
     }
 
     public var body: some View {
+        let lang = manager.settings.language
+
         VStack(spacing: 0) {
             // Title bar
             HStack(spacing: 8) {
@@ -28,7 +30,7 @@ public struct SettingsView: View {
                         .frame(width: 20, height: 20)
                         .cornerRadius(5)
                 }
-                Text("Quotty — настройки")
+                Text(lang.text("Quotty — настройки", "Quotty — Settings"))
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(textCol)
                 Spacer()
@@ -45,23 +47,49 @@ public struct SettingsView: View {
 
             ScrollView {
                 VStack(spacing: 14) {
-                    toolsCard
-                    appearanceCard
-                    pollingCard
-                    diagnosticsCard
+                    languageCard(lang: lang)
+                    toolsCard(lang: lang)
+                    appearanceCard(lang: lang)
+                    pollingCard(lang: lang)
+                    diagnosticsCard(lang: lang)
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
             }
         }
-        .frame(width: 480, height: 560)
+        .frame(width: 480, height: 600)
         .background(bgCol)
         .preferredColorScheme(.dark)
     }
 
     // MARK: - Cards
-    private var toolsCard: some View {
-        cardView(title: "ИНСТРУМЕНТЫ") {
+    private func languageCard(lang: AppLanguage) -> some View {
+        cardView(title: lang.text("ЯЗЫК", "LANGUAGE")) {
+            HStack {
+                Text(lang.text("Язык интерфейса:", "Interface language:"))
+                    .font(.system(size: 12))
+                    .foregroundColor(dimCol)
+                Spacer()
+                Picker("", selection: Binding(
+                    get: { manager.settings.language },
+                    set: {
+                        var s = manager.settings
+                        s.language = $0
+                        manager.updateSettings(s)
+                    }
+                )) {
+                    ForEach(AppLanguage.allCases, id: \.self) { l in
+                        Text(l.displayName).tag(l)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 200)
+            }
+        }
+    }
+
+    private func toolsCard(lang: AppLanguage) -> some View {
+        cardView(title: lang.text("ИНСТРУМЕНТЫ", "TOOLS")) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 16) {
                     Toggle("Antigravity", isOn: Binding(
@@ -83,7 +111,7 @@ public struct SettingsView: View {
                 Divider().background(cardHiCol)
 
                 HStack {
-                    Text("Режим переключения:")
+                    Text(lang.text("Режим переключения:", "Switching mode:"))
                         .font(.system(size: 12))
                         .foregroundColor(dimCol)
                     Spacer()
@@ -95,8 +123,8 @@ public struct SettingsView: View {
                             manager.updateSettings(s)
                         }
                     )) {
-                        Text("Авто (по окну)").tag(ActiveMode.auto)
-                        Text("Закрепить").tag(ActiveMode.pinned)
+                        Text(lang.text("Авто (по окну)", "Auto (active window)")).tag(ActiveMode.auto)
+                        Text(lang.text("Закрепить", "Pinned")).tag(ActiveMode.pinned)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 230)
@@ -104,7 +132,7 @@ public struct SettingsView: View {
 
                 if manager.settings.activeMode == .pinned {
                     HStack {
-                        Text("Закреплённый инструмент:")
+                        Text(lang.text("Закреплённый инструмент:", "Pinned tool:"))
                             .font(.system(size: 12))
                             .foregroundColor(dimCol)
                         Spacer()
@@ -125,13 +153,13 @@ public struct SettingsView: View {
         }
     }
 
-    private var appearanceCard: some View {
-        cardView(title: "ОТОБРАЖЕНИЕ") {
+    private func appearanceCard(lang: AppLanguage) -> some View {
+        cardView(title: lang.text("ОТОБРАЖЕНИЕ", "APPEARANCE")) {
             VStack(alignment: .leading, spacing: 12) {
                 // Opacity slider
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Непрозрачность:")
+                        Text(lang.text("Непрозрачность:", "Opacity:"))
                             .font(.system(size: 12))
                             .foregroundColor(dimCol)
                         Spacer()
@@ -160,7 +188,7 @@ public struct SettingsView: View {
 
                 // Header Mode
                 HStack {
-                    Text("Заголовок полоски:")
+                    Text(lang.text("Заголовок полоски:", "Strip header:"))
                         .font(.system(size: 12))
                         .foregroundColor(dimCol)
                     Spacer()
@@ -172,9 +200,9 @@ public struct SettingsView: View {
                             manager.updateSettings(s)
                         }
                     )) {
-                        Text("Полный").tag(HeaderMode.full)
-                        Text("Только имя").tag(HeaderMode.familyOnly)
-                        Text("Скрыть").tag(HeaderMode.hidden)
+                        Text(lang.text("Полный", "Full")).tag(HeaderMode.full)
+                        Text(lang.text("Только имя", "Family only")).tag(HeaderMode.familyOnly)
+                        Text(lang.text("Скрыть", "Hidden")).tag(HeaderMode.hidden)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 230)
@@ -185,10 +213,10 @@ public struct SettingsView: View {
                 // Exhausted Quotas Mode
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Исчерпанная квота (100%):")
+                        Text(lang.text("Исчерпанная квота (100%):", "Exhausted quota (100%):"))
                             .font(.system(size: 12))
                             .foregroundColor(dimCol)
-                        Text(exhaustedModeSubtitle)
+                        Text(exhaustedModeSubtitle(lang: lang))
                             .font(.system(size: 10))
                             .foregroundColor(dimCol.opacity(0.8))
                     }
@@ -201,9 +229,9 @@ public struct SettingsView: View {
                             manager.updateSettings(s)
                         }
                     )) {
-                        Text("Без полосы").tag(ExhaustedMode.compact)
-                        Text("Скрыть").tag(ExhaustedMode.hidden)
-                        Text("С полосой").tag(ExhaustedMode.full)
+                        Text(lang.text("Без полосы", "Compact")).tag(ExhaustedMode.compact)
+                        Text(lang.text("Скрыть", "Hidden")).tag(ExhaustedMode.hidden)
+                        Text(lang.text("С полосой", "Full")).tag(ExhaustedMode.full)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 230)
@@ -213,7 +241,7 @@ public struct SettingsView: View {
 
                 // Auto-hide when not in AI window
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Показывать только в окне ИИ", isOn: Binding(
+                    Toggle(lang.text("Показывать только в окне ИИ", "Show only in AI window"), isOn: Binding(
                         get: { manager.settings.autoHideOnInactive },
                         set: {
                             var s = manager.settings
@@ -225,7 +253,7 @@ public struct SettingsView: View {
                     .font(.system(size: 12))
                     .foregroundColor(textCol)
 
-                    Text("Скрывать полоску при переходе на другие приложения")
+                    Text(lang.text("Скрывать полоску при переходе на другие приложения", "Hide strip when switching to other apps"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                         .padding(.leading, 18)
@@ -235,7 +263,7 @@ public struct SettingsView: View {
 
                 // Compact mode
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Компактный режим (без полос)", isOn: Binding(
+                    Toggle(lang.text("Компактный режим (без полос)", "Compact mode (no bars)"), isOn: Binding(
                         get: { manager.settings.compactMode },
                         set: {
                             var s = manager.settings
@@ -247,7 +275,7 @@ public struct SettingsView: View {
                     .font(.system(size: 12))
                     .foregroundColor(textCol)
 
-                    Text("Скрывать графические полосы для всех моделей, оставляя только текст")
+                    Text(lang.text("Скрывать графические полосы для всех моделей, оставляя только текст", "Hide graphical bars for all models, showing text only"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                         .padding(.leading, 18)
@@ -257,7 +285,7 @@ public struct SettingsView: View {
 
                 // Show weekly limits
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle("Показывать остаток недельных лимитов", isOn: Binding(
+                    Toggle(lang.text("Показывать остаток недельных лимитов", "Show weekly limits remaining"), isOn: Binding(
                         get: { manager.settings.showWeeklyLimits },
                         set: {
                             var s = manager.settings
@@ -269,7 +297,7 @@ public struct SettingsView: View {
                     .font(.system(size: 12))
                     .foregroundColor(textCol)
 
-                    Text("Отображать бейдж [нед. Х%] рядом с названием модели")
+                    Text(lang.text("Отображать бейдж [нед. Х%] рядом с названием модели", "Display [wk. X%] badge next to model title"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                         .padding(.leading, 18)
@@ -278,7 +306,7 @@ public struct SettingsView: View {
                 Divider().background(cardHiCol)
 
                 // Animation
-                Toggle("Анимация пузырьков (при расходе с запасом)", isOn: Binding(
+                Toggle(lang.text("Анимация пузырьков (при расходе с запасом)", "Bubble animation (when pacing with surplus)"), isOn: Binding(
                     get: { manager.settings.animate },
                     set: {
                         var s = manager.settings
@@ -294,7 +322,7 @@ public struct SettingsView: View {
 
                 // Dock settings
                 VStack(alignment: .leading, spacing: 6) {
-                    Toggle("Показывать иконку в Dock", isOn: Binding(
+                    Toggle(lang.text("Показывать иконку в Dock", "Show icon in Dock"), isOn: Binding(
                         get: { manager.settings.showInDock },
                         set: {
                             var s = manager.settings
@@ -306,13 +334,13 @@ public struct SettingsView: View {
                     .font(.system(size: 12))
                     .foregroundColor(textCol)
 
-                    Text("Отображать Quotty на панели Dock и в переключателе Cmd+Tab")
+                    Text(lang.text("Отображать Quotty на панели Dock и в переключателе Cmd+Tab", "Show Quotty in Dock and Cmd+Tab app switcher"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                         .padding(.leading, 18)
 
                     if manager.settings.showInDock {
-                        Toggle("Бейдж с остатком квоты на значке", isOn: Binding(
+                        Toggle(lang.text("Бейдж с остатком квоты на значке", "Quota remaining badge on icon"), isOn: Binding(
                             get: { manager.settings.showDockBadge },
                             set: {
                                 var s = manager.settings
@@ -331,11 +359,11 @@ public struct SettingsView: View {
         }
     }
 
-    private var pollingCard: some View {
-        cardView(title: "ОПРОС И ОБНОВЛЕНИЕ") {
+    private func pollingCard(lang: AppLanguage) -> some View {
+        cardView(title: lang.text("ОПРОС И ОБНОВЛЕНИЕ", "POLLING & UPDATES")) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Интервал обновления:")
+                    Text(lang.text("Интервал обновления:", "Polling interval:"))
                         .font(.system(size: 12))
                         .foregroundColor(dimCol)
                     Spacer()
@@ -347,18 +375,18 @@ public struct SettingsView: View {
                             manager.updateSettings(s)
                         }
                     )) {
-                        Text("15 сек").tag(15)
-                        Text("30 сек").tag(30)
-                        Text("60 сек (по умолчанию)").tag(60)
-                        Text("2 мин").tag(120)
-                        Text("5 мин").tag(300)
+                        Text(lang.text("15 сек", "15 s")).tag(15)
+                        Text(lang.text("30 сек", "30 s")).tag(30)
+                        Text(lang.text("60 сек (по умолчанию)", "60 s (default)")).tag(60)
+                        Text(lang.text("2 мин", "2 min")).tag(120)
+                        Text(lang.text("5 мин", "5 min")).tag(300)
                     }
                     .frame(width: 180)
                 }
 
                 HStack {
                     Spacer()
-                    Button("Обновить данные сейчас") {
+                    Button(lang.text("Обновить данные сейчас", "Refresh data now")) {
                         manager.refreshNow()
                     }
                     .buttonStyle(.borderedProminent)
@@ -369,15 +397,15 @@ public struct SettingsView: View {
         }
     }
 
-    private var diagnosticsCard: some View {
-        cardView(title: "ДИАГНОСТИКА") {
+    private func diagnosticsCard(lang: AppLanguage) -> some View {
+        cardView(title: lang.text("ДИАГНОСТИКА", "DIAGNOSTICS")) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Папка настроек Quotty")
+                    Text(lang.text("Папка настроек Quotty", "Quotty settings folder"))
                         .font(.system(size: 12))
                         .foregroundColor(dimCol)
                     Spacer()
-                    Button("Открыть в Finder") {
+                    Button(lang.text("Открыть в Finder", "Reveal in Finder")) {
                         let dir = Settings.settingsDirectory()
                         NSWorkspace.shared.open(dir)
                     }
@@ -402,14 +430,14 @@ public struct SettingsView: View {
         }
     }
 
-    private var exhaustedModeSubtitle: String {
+    private func exhaustedModeSubtitle(lang: AppLanguage) -> String {
         switch manager.settings.exhaustedMode {
         case .compact:
-            return "Только текст и сброс, без шкалы"
+            return lang.text("Только текст и сброс, без шкалы", "Text and reset only, no bar")
         case .hidden:
-            return "Скрыть из списка, таймер в шапке"
+            return lang.text("Скрыть из списка, таймер в шапке", "Hide from list, timer in header")
         case .full:
-            return "Показывать шкалу целиком"
+            return lang.text("Показывать шкалу целиком", "Show full bar")
         }
     }
 

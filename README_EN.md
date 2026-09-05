@@ -28,6 +28,15 @@ Supports three tool families:
 
 ## Features
 
+### New in 1.4.4
+
+- **Red Out of Quota badge on exhausted Antigravity weekly quota**: a depleted weekly quota locks the model group even if the 5-hour window has room. Shows the weekly reset time (without invented fallback dates), hides percentage text, and respects the selected exhausted quota display mode.
+- **Interface Language Selection: Russian / English**: toggle in Settings, Russian by default. Applied dynamically without restart across the strip, settings, context menu, menu bar, and Dock.
+- **Layout improvements**: long strip title no longer overlaps hidden quota badges in the header.
+- **Universal CSRF log parsing**: supports both `--csrf_token <uuid>` and `--csrf_token=<uuid>` formats in Antigravity logs.
+
+### Core Features
+
 - **Separate row for each quota window** (from 5 hours to monthly — whatever the service provides).
 - **Usage bar with a white time marker**: see at a glance whether you are spending faster or slower than time elapsed:
   - 🟢 **green** — spending with buffer; rising bubbles emerge from the spend edge;

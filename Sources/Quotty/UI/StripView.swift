@@ -18,6 +18,7 @@ public struct StripView: View {
     private let greenCol = Color(red: 96/255, green: 196/255, blue: 132/255)
     private let yellowCol = Color(red: 208/255, green: 192/255, blue: 96/255)
     private let orangeCol = Color(red: 214/255, green: 150/255, blue: 74/255)
+    private let redCol = Color(red: 255/255, green: 90/255, blue: 90/255)
     private let strongCol = Color(red: 232/255, green: 236/255, blue: 245/255)
     private let dimCol = Color(red: 176/255, green: 184/255, blue: 200/255)
 
@@ -31,7 +32,8 @@ public struct StripView: View {
         TimelineView(.animation) { timeline in
             let animTime = timeline.date.timeIntervalSinceReferenceDate
             let now = timeline.date
-            
+            let lang = manager.settings.language
+
             let state = manager.currentState
             let allLimits = state.last?.limits ?? []
             let activeLimits = allLimits.filter { !$0.isExhausted }
@@ -54,15 +56,15 @@ public struct StripView: View {
             }()
 
             VStack(alignment: .leading, spacing: 6) {
-                headerView(now: now, animTime: animTime, hiddenExhausted: hiddenExhausted)
-                
+                headerView(now: now, animTime: animTime, hiddenExhausted: hiddenExhausted, lang: lang)
+
                 if state.last != nil, (state.online || state.rateLimited) {
                     if visibleLimits.isEmpty && !allLimits.isEmpty {
                         HStack(spacing: 5) {
                             Image(systemName: "clock.badge.exclamationmark")
                                 .font(.system(size: 10.5))
                                 .foregroundColor(orangeCol)
-                            Text("Все квоты исчерпаны")
+                            Text(lang.text("Все квоты исчерпаны", "All quotas exhausted"))
                                 .font(.system(size: 11))
                                 .foregroundColor(dimCol)
                             Spacer()
@@ -70,20 +72,20 @@ public struct StripView: View {
                         .padding(.vertical, 2)
                     } else {
                         ForEach(visibleLimits) { limit in
-                            limitRow(limit: limit, now: now, animTime: animTime)
+                            limitRow(limit: limit, now: now, animTime: animTime, lang: lang)
                         }
                     }
                 } else if !state.online && state.ever {
-                    Text("нет данных")
+                    Text(lang.text("нет данных", "no data"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                 } else if let err = state.error {
-                    Text("ошибка: \(err)")
+                    Text(lang.text("ошибка: \(err)", "error: \(err)"))
                         .font(.system(size: 10.5))
                         .foregroundColor(orangeCol)
                         .lineLimit(2)
                 } else {
-                    Text("загрузка данных…")
+                    Text(lang.text("загрузка данных…", "loading data…"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                 }
@@ -110,17 +112,17 @@ public struct StripView: View {
                 }
             }
             .contextMenu {
-                stripContextMenu
+                stripContextMenu(lang: lang)
             }
         }
     }
 
     // MARK: - Header
     @ViewBuilder
-    private func headerView(now: Date, animTime: Double, hiddenExhausted: [Limit] = []) -> some View {
+    private func headerView(now: Date, animTime: Double, hiddenExhausted: [Limit] = [], lang: AppLanguage) -> some View {
         let state = manager.currentState
         let showHeader = manager.settings.headerMode != .hidden
-        
+
         let headerText: String = {
             switch manager.settings.headerMode {
             case .hidden: return ""
@@ -135,51 +137,57 @@ public struct StripView: View {
                 Text(headerText)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(strongCol)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            Spacer()
+            Spacer(minLength: 4)
 
             if !hiddenExhausted.isEmpty {
                 HStack(spacing: 4) {
                     ForEach(hiddenExhausted) { item in
                         let name = item.title.split(separator: " ").first.map(String.init) ?? item.title
+                        let isWeeklyEx = item.isWeeklyExhausted
+                        let tagCol = isWeeklyEx ? redCol : orangeCol
                         HStack(spacing: 3) {
-                            Text("\(name) сброс:")
+                            Text(lang.text("\(name) сброс:", "\(name) reset:"))
                                 .font(.system(size: 10))
                                 .foregroundColor(dimCol)
                             if let win = item.window {
-                                Text(formatResetShort(resetsAt: win.resetsAt, now: now))
+                                Text(L10n.formatResetShort(resetsAt: win.resetsAt, now: now, language: lang))
                                     .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(orangeCol)
+                                    .foregroundColor(tagCol)
                             } else {
-                                Text("100%")
+                                Text(isWeeklyEx ? lang.text("сброс неизвестен", "unknown") : "100%")
                                     .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(orangeCol)
+                                    .foregroundColor(tagCol)
                             }
                         }
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1.5)
-                        .background(Color(red: 214/255, green: 150/255, blue: 74/255).opacity(0.15))
+                        .background(tagCol.opacity(0.15))
                         .cornerRadius(4)
                     }
                 }
+                .layoutPriority(1)
             }
 
-            statusView(state: state, animTime: animTime)
+            statusView(state: state, animTime: animTime, lang: lang)
+                .layoutPriority(2)
         }
     }
 
     @ViewBuilder
-    private func statusView(state: FetchState, animTime: Double) -> some View {
+    private func statusView(state: FetchState, animTime: Double, lang: AppLanguage) -> some View {
         HStack(spacing: 5) {
             if !state.ever && !state.online {
-                Text("загрузка…")
+                Text(lang.text("загрузка…", "loading…"))
                     .font(.system(size: 10.5))
                     .foregroundColor(dimCol)
             } else if state.online {
                 Circle()
                     .fill(Color(red: 120/255, green: 205/255, blue: 150/255))
                     .frame(width: 6, height: 6)
-                Text("онлайн")
+                Text(lang.text("онлайн", "online"))
                     .font(.system(size: 10.5))
                     .foregroundColor(Color(red: 120/255, green: 205/255, blue: 150/255))
             } else if state.rateLimited {
@@ -187,14 +195,14 @@ public struct StripView: View {
                 Circle()
                     .fill(Color(red: 214/255, green: 200/255, blue: 110/255).opacity(pulse))
                     .frame(width: 6, height: 6)
-                Text("подключение")
+                Text(lang.text("подключение", "connecting…"))
                     .font(.system(size: 10.5))
                     .foregroundColor(Color(red: 214/255, green: 200/255, blue: 110/255))
             } else {
                 Circle()
                     .fill(orangeCol)
                     .frame(width: 6, height: 6)
-                Text("оффлайн")
+                Text(lang.text("оффлайн", "offline"))
                     .font(.system(size: 10.5))
                     .foregroundColor(orangeCol)
             }
@@ -203,46 +211,78 @@ public struct StripView: View {
 
     // MARK: - Limit Row
     @ViewBuilder
-    private func limitRow(limit: Limit, now: Date, animTime: Double) -> some View {
+    private func limitRow(limit: Limit, now: Date, animTime: Double, lang: AppLanguage) -> some View {
         let useFrac = min(1.0, max(0.0, limit.usedPercent / 100.0))
         let timeFrac = limit.window?.markerFrac(now: now)
         let exhausted = limit.isExhausted
+        let weeklyExhausted = limit.isWeeklyExhausted
         let isCompact = manager.settings.compactMode || (exhausted && manager.settings.exhaustedMode == .compact)
         let overspend = !exhausted && (timeFrac != nil) && (useFrac > (timeFrac! + 0.02))
 
         let pctCol: Color = {
+            if weeklyExhausted { return redCol }
             if exhausted { return orangeCol }
             if overspend { return yellowCol }
             return greenCol
         }()
 
+        let titleText = localizedLimitTitle(limit.title, lang: lang)
+
         VStack(spacing: isCompact ? 0 : 4) {
             // Text line
             HStack(spacing: 6) {
-                Text(limit.title)
+                Text(titleText)
                     .font(.system(size: 12.5, weight: .medium))
                     .foregroundColor(exhausted ? dimCol : strongCol)
 
-                if manager.settings.showWeeklyLimits, let badge = limit.badge {
-                    Text(badge)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(orangeCol)
+                if weeklyExhausted {
+                    Text("Out of Quota")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundColor(redCol)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
-                        .background(orangeCol.opacity(0.15))
+                        .background(redCol.opacity(0.15))
                         .cornerRadius(3)
+                } else if manager.settings.showWeeklyLimits {
+                    if let weekly = limit.weekly {
+                        let wPct = Int(round(weekly.remainingPercent))
+                        Text(L10n.weeklyBadge(percent: wPct, language: lang))
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(orangeCol)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(orangeCol.opacity(0.15))
+                            .cornerRadius(3)
+                    } else if let badge = limit.badge {
+                        let badgeStr = localizedBadge(badge, lang: lang)
+                        Text(badgeStr)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(orangeCol)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(orangeCol.opacity(0.15))
+                            .cornerRadius(3)
+                    }
                 }
 
                 Spacer()
-                Text(String(format: "%.0f%%", limit.usedPercent))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(pctCol)
+
+                if !weeklyExhausted {
+                    Text(String(format: "%.0f%%", limit.usedPercent))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(pctCol)
+                }
+
                 if let win = limit.window {
-                    Text(formatReset(resetsAt: win.resetsAt, now: now))
+                    Text(L10n.formatReset(resetsAt: win.resetsAt, now: now, language: lang))
+                        .font(.system(size: 11))
+                        .foregroundColor(dimCol)
+                } else if weeklyExhausted {
+                    Text(lang.text("время сброса неизвестно", "reset time unknown"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                 } else {
-                    Text("окно ещё не начато")
+                    Text(lang.text("окно ещё не начато", "window not started"))
                         .font(.system(size: 11))
                         .foregroundColor(dimCol)
                 }
@@ -263,7 +303,11 @@ public struct StripView: View {
                             .frame(height: h)
 
                         // Fill
-                        if exhausted {
+                        if weeklyExhausted {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(redCol)
+                                .frame(height: h)
+                        } else if exhausted {
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(orangeCol)
                                 .frame(height: h)
@@ -296,7 +340,7 @@ public struct StripView: View {
                         }
 
                         // White time marker tick
-                        if let mx = markerX {
+                        if let mx = markerX, !weeklyExhausted {
                             RoundedRectangle(cornerRadius: 1)
                                 .fill(Color(red: 235/255, green: 238/255, blue: 245/255))
                                 .frame(width: 2, height: h + 4)
@@ -309,64 +353,36 @@ public struct StripView: View {
         }
     }
 
-    private func formatReset(resetsAt: Date, now: Date) -> String {
-        let diffSecs = Int(resetsAt.timeIntervalSince(now))
-        let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "HH:mm"
-        let absStr = timeFormatter.string(from: resetsAt)
-
-        if diffSecs <= 0 {
-            return "Сброс \(absStr) · сейчас"
+    private func localizedLimitTitle(_ title: String, lang: AppLanguage) -> String {
+        switch title {
+        case "limit": return lang.text("Лимит", "Limit")
+        case "5-hour limit": return lang.text("Лимит на 5 часов", "5-hour limit")
+        case "Weekly · all models": return lang.text("Неделя · все модели", "Weekly · all models")
+        case "Monthly limit": return lang.text("Месячный лимит", "Monthly limit")
+        default:
+            if title.hasSuffix("-day limit") {
+                let n = title.replacingOccurrences(of: "-day limit", with: "")
+                return lang.text("Лимит на \(n) дн.", "\(n)-day limit")
+            }
+            if title.hasSuffix("-hour limit") {
+                let n = title.replacingOccurrences(of: "-hour limit", with: "")
+                return lang.text("Лимит на \(n) ч", "\(n)-hour limit")
+            }
+            return title
         }
-        let mins = diffSecs / 60
-        let hours = mins / 60
-        let remMins = mins % 60
-        let days = hours / 24
-        let remHours = hours % 24
-
-        let relStr: String
-        if days > 0 {
-            relStr = "через \(days)д \(remHours)ч"
-        } else if hours > 0 {
-            relStr = "через \(hours)ч \(remMins)м"
-        } else {
-            relStr = "через \(mins)м"
-        }
-
-        return "Сброс \(absStr) · \(relStr)"
     }
 
-    private func formatResetShort(resetsAt: Date, now: Date) -> String {
-        let diffSecs = Int(resetsAt.timeIntervalSince(now))
-        let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "HH:mm"
-        let absStr = timeFormatter.string(from: resetsAt)
-
-        if diffSecs <= 0 {
-            return "\(absStr) (сейчас)"
+    private func localizedBadge(_ badge: String, lang: AppLanguage) -> String {
+        if lang == .english {
+            return badge.replacingOccurrences(of: "нед.", with: "wk.")
         }
-        let mins = diffSecs / 60
-        let hours = mins / 60
-        let remMins = mins % 60
-        let days = hours / 24
-        let remHours = hours % 24
-
-        let relStr: String
-        if days > 0 {
-            relStr = "\(days)д \(remHours)ч"
-        } else if hours > 0 {
-            relStr = "\(hours)ч \(remMins)м"
-        } else {
-            relStr = "\(mins)м"
-        }
-
-        return "\(absStr) (\(relStr))"
+        return badge
     }
 
     // MARK: - Context Menu
     @ViewBuilder
-    private var stripContextMenu: some View {
-        Menu("Инструмент") {
+    private func stripContextMenu(lang: AppLanguage) -> some View {
+        Menu(lang.text("Инструмент", "Tool")) {
             ForEach(Family.allCases, id: \.self) { f in
                 Button(action: { manager.switchToFamily(f) }) {
                     if manager.activeFamily == f {
@@ -378,11 +394,13 @@ public struct StripView: View {
             }
         }
 
-        Button("Обновить сейчас") {
+        Button(lang.text("Обновить сейчас", "Refresh now")) {
             manager.refreshNow()
         }
 
-        Button(manager.settings.compactMode ? "Обычный режим (с полосами)" : "Компактный режим (без полос)") {
+        Button(manager.settings.compactMode ?
+               lang.text("Обычный режим (с полосами)", "Standard mode (with bars)") :
+               lang.text("Компактный режим (без полос)", "Compact mode (no bars)")) {
             var s = manager.settings
             s.compactMode.toggle()
             manager.updateSettings(s)
@@ -390,19 +408,19 @@ public struct StripView: View {
 
         Divider()
 
-        Menu("Непрозрачность") {
+        Menu(lang.text("Непрозрачность", "Opacity")) {
             Button("50%") { setOpacity(0.5) }
             Button("80%") { setOpacity(0.8) }
             Button("100%") { setOpacity(1.0) }
         }
 
-        Button("Настройки…") {
+        Button(lang.text("Настройки…", "Settings…")) {
             onOpenSettings?()
         }
 
         Divider()
 
-        Button("Выход") {
+        Button(lang.text("Выход", "Quit")) {
             NSApplication.shared.terminate(nil)
         }
     }

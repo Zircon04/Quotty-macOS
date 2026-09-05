@@ -46,6 +46,7 @@ public struct Settings: Codable, Sendable {
     public var showDockBadge: Bool = true
     public var showWeeklyLimits: Bool = true
     public var compactMode: Bool = false
+    public var language: AppLanguage = .russian
 
     public init() {}
 
@@ -53,7 +54,7 @@ public struct Settings: Codable, Sendable {
         case opacity, pos, pollSecs, animate, headerMode
         case claudeEnabled, codexEnabled, antigravityEnabled
         case activeMode, family, diagnostics, autoHideOnInactive, exhaustedMode
-        case showInDock, showDockBadge, showWeeklyLimits, compactMode
+        case showInDock, showDockBadge, showWeeklyLimits, compactMode, language
     }
 
     public init(from decoder: Decoder) throws {
@@ -75,6 +76,7 @@ public struct Settings: Codable, Sendable {
         self.showDockBadge = try container.decodeIfPresent(Bool.self, forKey: .showDockBadge) ?? true
         self.showWeeklyLimits = try container.decodeIfPresent(Bool.self, forKey: .showWeeklyLimits) ?? true
         self.compactMode = try container.decodeIfPresent(Bool.self, forKey: .compactMode) ?? false
+        self.language = try container.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .russian
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -96,6 +98,7 @@ public struct Settings: Codable, Sendable {
         try container.encode(showDockBadge, forKey: .showDockBadge)
         try container.encode(showWeeklyLimits, forKey: .showWeeklyLimits)
         try container.encode(compactMode, forKey: .compactMode)
+        try container.encode(language, forKey: .language)
     }
 
     public static func settingsDirectory() -> URL {

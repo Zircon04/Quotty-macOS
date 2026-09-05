@@ -40,22 +40,39 @@ public struct LimitWindow: Sendable {
     }
 }
 
+public struct WeeklyQuota: Sendable {
+    public let remainingPercent: Double
+    public let resetsAt: Date?
+
+    public init(remainingPercent: Double, resetsAt: Date?) {
+        self.remainingPercent = remainingPercent
+        self.resetsAt = resetsAt
+    }
+}
+
 public struct Limit: Sendable, Identifiable {
     public var id: String { title }
     public let title: String
     public let usedPercent: Double
     public let window: LimitWindow?
     public let badge: String?
+    public let weekly: WeeklyQuota?
 
-    public init(title: String, usedPercent: Double, window: LimitWindow?, badge: String? = nil) {
+    public init(title: String, usedPercent: Double, window: LimitWindow?, badge: String? = nil, weekly: WeeklyQuota? = nil) {
         self.title = title
         self.usedPercent = usedPercent
         self.window = window
         self.badge = badge
+        self.weekly = weekly
+    }
+
+    public var isWeeklyExhausted: Bool {
+        guard let w = weekly else { return false }
+        return w.remainingPercent <= 0.0
     }
 
     public var isExhausted: Bool {
-        return usedPercent >= 99.5
+        return isWeeklyExhausted || usedPercent >= 99.5
     }
 }
 
@@ -91,20 +108,6 @@ public struct FetchState: Sendable {
     public init() {}
 }
 
-public func windowTitle(seconds: Int64) -> String {
-    switch seconds {
-    case ..<0:
-        return "limit"
-    case 17000...19000:
-        return "5-hour limit"
-    case 600000...700000:
-        return "Weekly · all models"
-    case 2500000...2700000:
-        return "Monthly limit"
-    default:
-        if seconds % 86400 == 0 {
-            return "\(seconds / 86400)-day limit"
-        }
-        return "\((seconds + 1800) / 3600)-hour limit"
-    }
+public func windowTitle(seconds: Int64, language: AppLanguage = .russian) -> String {
+    return L10n.limitTitle(seconds: seconds, language: language)
 }
