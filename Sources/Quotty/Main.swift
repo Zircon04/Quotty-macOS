@@ -192,19 +192,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 560),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         win.title = "Quotty — настройки"
         win.isReleasedWhenClosed = false
+        win.titlebarAppearsTransparent = true
+        win.titleVisibility = .hidden
+        win.isOpaque = false
+        win.backgroundColor = .clear
+        win.hasShadow = true
         win.center()
 
         let settingsView = SettingsView(manager: quotaManager) { [weak self] in
             self?.settingsWindow?.close()
         }
-        win.contentView = NSHostingView(rootView: settingsView)
+        let hostingView = NSHostingView(rootView: settingsView)
+        win.contentView = hostingView
 
         self.settingsWindow = win
         win.makeKeyAndOrderFront(nil)

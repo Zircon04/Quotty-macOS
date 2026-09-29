@@ -19,8 +19,8 @@ public final class StripPanel: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.isOpaque = false
         self.backgroundColor = .clear
-        self.hasShadow = true
-        self.isMovableByWindowBackground = true
+        self.hasShadow = true // Use native window shadow to perfectly match alpha mask
+        self.isMovableByWindowBackground = true  // Fallback for older macOS
         self.hidesOnDeactivate = false
 
         let stripView = StripView(
@@ -40,11 +40,15 @@ public final class StripPanel: NSPanel {
 
     public func updateHeight(_ newHeight: CGFloat) {
         let currentFrame = self.frame
-        if abs(currentFrame.height - newHeight) > 1.0 {
+        // Add padding for the glass shadow (offset y=6, radius=14)
+        let totalHeight = newHeight + 20
+        if abs(currentFrame.height - totalHeight) > 1.0 {
             isResizingHeight = true
-            let newY = currentFrame.maxY - newHeight
-            let newFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: newHeight)
+            let newY = currentFrame.maxY - totalHeight
+            let newFrame = NSRect(x: currentFrame.minX, y: newY, width: currentFrame.width, height: totalHeight)
             self.setFrame(newFrame, display: true, animate: false)
+            // Critical: invalidate cached shadow mask after resize on macOS 26+
+            self.invalidateShadow()
             isResizingHeight = false
         }
     }

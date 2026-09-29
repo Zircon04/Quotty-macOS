@@ -13,14 +13,14 @@ public struct StripView: View {
     public var onOpenSettings: (() -> Void)?
     public var onHeightChange: ((CGFloat) -> Void)?
 
-    private let bgCol = Color(red: 22/255, green: 24/255, blue: 30/255)
-    private let trackCol = Color(red: 60/255, green: 64/255, blue: 76/255)
+    // Liquid Glass adapted palette — slightly brighter to work over blur
+    private let trackCol = Color(red: 80/255, green: 84/255, blue: 96/255).opacity(0.5)
     private let greenCol = Color(red: 96/255, green: 196/255, blue: 132/255)
     private let yellowCol = Color(red: 208/255, green: 192/255, blue: 96/255)
     private let orangeCol = Color(red: 214/255, green: 150/255, blue: 74/255)
     private let redCol = Color(red: 255/255, green: 90/255, blue: 90/255)
-    private let strongCol = Color(red: 232/255, green: 236/255, blue: 245/255)
-    private let dimCol = Color(red: 176/255, green: 184/255, blue: 200/255)
+    private let strongCol = Color(red: 240/255, green: 244/255, blue: 252/255)
+    private let dimCol = Color(red: 190/255, green: 198/255, blue: 214/255)
 
     public init(manager: QuotaManager, onOpenSettings: (() -> Void)? = nil, onHeightChange: ((CGFloat) -> Void)? = nil) {
         self.manager = manager
@@ -29,97 +29,89 @@ public struct StripView: View {
     }
 
     public var body: some View {
-        TimelineView(.animation) { timeline in
-            let animTime = timeline.date.timeIntervalSinceReferenceDate
-            let now = timeline.date
-            let lang = manager.settings.language
+        let lang = manager.settings.language
+        let state = manager.currentState
+        let allLimits = state.last?.limits ?? []
+        let activeLimits = allLimits.filter { !$0.isExhausted }
+        let exhaustedLimits = allLimits.filter { $0.isExhausted }
 
-            let state = manager.currentState
-            let allLimits = state.last?.limits ?? []
-            let activeLimits = allLimits.filter { !$0.isExhausted }
-            let exhaustedLimits = allLimits.filter { $0.isExhausted }
+        let visibleLimits: [Limit] = {
+            switch manager.settings.exhaustedMode {
+            case .full, .compact:
+                return allLimits
+            case .hidden:
+                return activeLimits
+            }
+        }()
 
-            let visibleLimits: [Limit] = {
-                switch manager.settings.exhaustedMode {
-                case .full, .compact:
-                    return allLimits
-                case .hidden:
-                    return activeLimits
-                }
-            }()
+        let hiddenExhausted: [Limit] = {
+            if manager.settings.exhaustedMode == .hidden {
+                return exhaustedLimits
+            }
+            return []
+        }()
 
-            let hiddenExhausted: [Limit] = {
-                if manager.settings.exhaustedMode == .hidden {
-                    return exhaustedLimits
-                }
-                return []
-            }()
+        VStack(alignment: .leading, spacing: 6) {
+            // Header
+            headerView(hiddenExhausted: hiddenExhausted, lang: lang)
 
-            VStack(alignment: .leading, spacing: 6) {
-                headerView(now: now, animTime: animTime, hiddenExhausted: hiddenExhausted, lang: lang)
-
-                if state.last != nil, (state.online || state.rateLimited) {
-                    if visibleLimits.isEmpty && !allLimits.isEmpty {
-                        HStack(spacing: 5) {
-                            Image(systemName: "clock.badge.exclamationmark")
-                                .font(.system(size: 10.5))
-                                .foregroundColor(orangeCol)
-                            Text(lang.text("Все квоты исчерпаны", "All quotas exhausted"))
-                                .font(.system(size: 11))
-                                .foregroundColor(dimCol)
-                            Spacer()
-                        }
-                        .padding(.vertical, 2)
-                    } else {
-                        ForEach(visibleLimits) { limit in
-                            limitRow(limit: limit, now: now, animTime: animTime, lang: lang)
-                        }
+            if state.last != nil, (state.online || state.rateLimited) {
+                if visibleLimits.isEmpty && !allLimits.isEmpty {
+                    HStack(spacing: 5) {
+                        Image(systemName: "clock.badge.exclamationmark")
+                            .font(.system(size: 10.5))
+                            .foregroundColor(orangeCol)
+                        Text(lang.text("Все квоты исчерпаны", "All quotas exhausted"))
+                            .font(.system(size: 11))
+                            .foregroundColor(dimCol)
+                        Spacer()
                     }
-                } else if !state.online && state.ever {
-                    Text(lang.text("нет данных", "no data"))
-                        .font(.system(size: 11))
-                        .foregroundColor(dimCol)
-                } else if let err = state.error {
-                    Text(lang.text("ошибка: \(err)", "error: \(err)"))
-                        .font(.system(size: 10.5))
-                        .foregroundColor(orangeCol)
-                        .lineLimit(2)
+                    .padding(.vertical, 2)
                 } else {
-                    Text(lang.text("загрузка данных…", "loading data…"))
-                        .font(.system(size: 11))
-                        .foregroundColor(dimCol)
+                    ForEach(visibleLimits) { limit in
+                        limitRow(limit: limit, lang: lang)
+                    }
                 }
+            } else if !state.online && state.ever {
+                Text(lang.text("нет данных", "no data"))
+                    .font(.system(size: 11))
+                    .foregroundColor(dimCol)
+            } else if let err = state.error {
+                let errMsg = err.lowercased().hasPrefix("ошибка") || err.lowercased().hasPrefix("error") ?
+                    err : lang.text("ошибка: \(err)", "error: \(err)")
+                Text(errMsg)
+                    .font(.system(size: 10.5))
+                    .foregroundColor(orangeCol)
+                    .lineLimit(2)
+            } else {
+                Text(lang.text("загрузка данных…", "loading data…"))
+                    .font(.system(size: 11))
+                    .foregroundColor(dimCol)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(width: 430)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(bgCol.opacity(manager.settings.opacity))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                    )
-            )
-            .background(
-                GeometryReader { geo in
-                    Color.clear.preference(key: ContentHeightPreferenceKey.self, value: geo.size.height)
-                }
-            )
-            .onPreferenceChange(ContentHeightPreferenceKey.self) { h in
-                if h > 10 {
-                    onHeightChange?(h)
-                }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(width: 430)
+        .glassEffect(.liquid, opacity: manager.settings.opacity)
+        .windowDragHandle() // Now the entire widget is draggable
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: ContentHeightPreferenceKey.self, value: geo.size.height)
             }
-            .contextMenu {
-                stripContextMenu(lang: lang)
+        )
+        .onPreferenceChange(ContentHeightPreferenceKey.self) { h in
+            if h > 10 {
+                onHeightChange?(h)
             }
+        }
+        .contextMenu {
+            stripContextMenu(lang: lang)
         }
     }
 
     // MARK: - Header
     @ViewBuilder
-    private func headerView(now: Date, animTime: Double, hiddenExhausted: [Limit] = [], lang: AppLanguage) -> some View {
+    private func headerView(hiddenExhausted: [Limit] = [], lang: AppLanguage) -> some View {
         let state = manager.currentState
         let showHeader = manager.settings.headerMode != .hidden
 
@@ -153,7 +145,7 @@ public struct StripView: View {
                                 .font(.system(size: 10))
                                 .foregroundColor(dimCol)
                             if let win = item.window {
-                                Text(L10n.formatResetShort(resetsAt: win.resetsAt, now: now, language: lang))
+                                Text(L10n.formatResetShort(resetsAt: win.resetsAt, now: Date(), language: lang))
                                     .font(.system(size: 10, weight: .medium))
                                     .foregroundColor(tagCol)
                             } else {
@@ -171,13 +163,14 @@ public struct StripView: View {
                 .layoutPriority(1)
             }
 
-            statusView(state: state, animTime: animTime, lang: lang)
+            // Status indicator — animated only when needed
+            statusView(state: state, lang: lang)
                 .layoutPriority(2)
         }
     }
 
     @ViewBuilder
-    private func statusView(state: FetchState, animTime: Double, lang: AppLanguage) -> some View {
+    private func statusView(state: FetchState, lang: AppLanguage) -> some View {
         HStack(spacing: 5) {
             if !state.ever && !state.online {
                 Text(lang.text("загрузка…", "loading…"))
@@ -191,10 +184,13 @@ public struct StripView: View {
                     .font(.system(size: 10.5))
                     .foregroundColor(Color(red: 120/255, green: 205/255, blue: 150/255))
             } else if state.rateLimited {
-                let pulse = 0.45 + 0.55 * (0.5 + 0.5 * sin(animTime * 2.2))
-                Circle()
-                    .fill(Color(red: 214/255, green: 200/255, blue: 110/255).opacity(pulse))
-                    .frame(width: 6, height: 6)
+                // Only this uses TimelineView for the pulse animation
+                TimelineView(.animation(minimumInterval: 0.1)) { timeline in
+                    let pulse = 0.45 + 0.55 * (0.5 + 0.5 * sin(timeline.date.timeIntervalSinceReferenceDate * 2.2))
+                    Circle()
+                        .fill(Color(red: 214/255, green: 200/255, blue: 110/255).opacity(pulse))
+                        .frame(width: 6, height: 6)
+                }
                 Text(lang.text("подключение", "connecting…"))
                     .font(.system(size: 10.5))
                     .foregroundColor(Color(red: 214/255, green: 200/255, blue: 110/255))
@@ -211,7 +207,8 @@ public struct StripView: View {
 
     // MARK: - Limit Row
     @ViewBuilder
-    private func limitRow(limit: Limit, now: Date, animTime: Double, lang: AppLanguage) -> some View {
+    private func limitRow(limit: Limit, lang: AppLanguage) -> some View {
+        let now = Date()
         let useFrac = min(1.0, max(0.0, limit.usedPercent / 100.0))
         let timeFrac = limit.window?.markerFrac(now: now)
         let exhausted = limit.isExhausted
@@ -289,7 +286,7 @@ public struct StripView: View {
             }
 
             if !isCompact {
-                // Usage bar
+                // Usage bar — animated bubbles use their own TimelineView
                 GeometryReader { geo in
                     let w = geo.size.width
                     let h: CGFloat = 11.0
@@ -297,9 +294,9 @@ public struct StripView: View {
                     let markerX = timeFrac.map { w * CGFloat($0) }
 
                     ZStack(alignment: .leading) {
-                        // Track
+                        // Track — glass-style semi-transparent
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(trackCol.opacity(manager.settings.opacity))
+                            .fill(trackCol)
                             .frame(height: h)
 
                         // Fill
@@ -327,22 +324,24 @@ public struct StripView: View {
                                 .fill(greenCol)
                                 .frame(width: max(useFrac > 0 ? 3 : 0, useEnd), height: h)
 
-                            // Bubbles rising from spend edge towards marker
+                            // Bubbles — scoped TimelineView only when animated
                             if manager.settings.animate, let mx = markerX, mx > useEnd + 4 {
-                                BubbleCanvas(
-                                    startX: useEnd,
-                                    endX: min(mx, useEnd + w * 0.35),
-                                    height: h,
-                                    animTime: animTime
-                                )
-                                .frame(height: h)
+                                TimelineView(.animation(minimumInterval: 1.0/30.0)) { timeline in
+                                    BubbleCanvas(
+                                        startX: useEnd,
+                                        endX: min(mx, useEnd + w * 0.35),
+                                        height: h,
+                                        animTime: timeline.date.timeIntervalSinceReferenceDate
+                                    )
+                                    .frame(height: h)
+                                }
                             }
                         }
 
                         // White time marker tick
                         if let mx = markerX, !weeklyExhausted {
                             RoundedRectangle(cornerRadius: 1)
-                                .fill(Color(red: 235/255, green: 238/255, blue: 245/255))
+                                .fill(Color(red: 240/255, green: 243/255, blue: 250/255))
                                 .frame(width: 2, height: h + 4)
                                 .offset(x: mx - 1)
                         }

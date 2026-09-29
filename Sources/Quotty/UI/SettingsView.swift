@@ -5,12 +5,10 @@ public struct SettingsView: View {
     @ObservedObject public var manager: QuotaManager
     public var onClose: (() -> Void)?
 
-    private let bgCol = Color(red: 18/255, green: 20/255, blue: 26/255)
-    private let cardCol = Color(red: 30/255, green: 33/255, blue: 42/255)
-    private let cardHiCol = Color(red: 48/255, green: 53/255, blue: 65/255)
+    // Glass-adapted palette
     private let accentCol = Color(red: 110/255, green: 210/255, blue: 146/255)
-    private let textCol = Color(red: 234/255, green: 238/255, blue: 246/255)
-    private let dimCol = Color(red: 176/255, green: 184/255, blue: 200/255)
+    private let textCol = Color(red: 240/255, green: 244/255, blue: 252/255)
+    private let dimCol = Color(red: 190/255, green: 198/255, blue: 214/255)
 
     public init(manager: QuotaManager, onClose: (() -> Void)? = nil) {
         self.manager = manager
@@ -58,7 +56,7 @@ public struct SettingsView: View {
             }
         }
         .frame(width: 480, height: 600)
-        .background(bgCol)
+        .glassEffect(.settingsPanel)
         .preferredColorScheme(.dark)
     }
 
@@ -108,7 +106,7 @@ public struct SettingsView: View {
                 .toggleStyle(.checkbox)
                 .foregroundColor(textCol)
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 HStack {
                     Text(lang.text("Режим переключения:", "Switching mode:"))
@@ -184,7 +182,7 @@ public struct SettingsView: View {
                     }
                 }
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 // Header Mode
                 HStack {
@@ -208,7 +206,7 @@ public struct SettingsView: View {
                     .frame(width: 230)
                 }
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 // Exhausted Quotas Mode
                 HStack {
@@ -237,7 +235,7 @@ public struct SettingsView: View {
                     .frame(width: 230)
                 }
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 // Auto-hide when not in AI window
                 VStack(alignment: .leading, spacing: 4) {
@@ -259,7 +257,7 @@ public struct SettingsView: View {
                         .padding(.leading, 18)
                 }
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 // Compact mode
                 VStack(alignment: .leading, spacing: 4) {
@@ -281,7 +279,7 @@ public struct SettingsView: View {
                         .padding(.leading, 18)
                 }
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 // Show weekly limits
                 VStack(alignment: .leading, spacing: 4) {
@@ -303,7 +301,7 @@ public struct SettingsView: View {
                         .padding(.leading, 18)
                 }
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 // Animation
                 Toggle(lang.text("Анимация пузырьков (при расходе с запасом)", "Bubble animation (when pacing with surplus)"), isOn: Binding(
@@ -318,7 +316,7 @@ public struct SettingsView: View {
                 .font(.system(size: 12))
                 .foregroundColor(textCol)
 
-                Divider().background(cardHiCol)
+                Divider().background(Color.white.opacity(0.08))
 
                 // Dock settings
                 VStack(alignment: .leading, spacing: 6) {
@@ -425,8 +423,7 @@ public struct SettingsView: View {
                 content()
             }
             .padding(12)
-            .background(cardCol)
-            .cornerRadius(8)
+            .glassEffect(.card, opacity: 1.0)
         }
     }
 
