@@ -91,9 +91,12 @@ public struct StripView: View {
                 }
             }
             .padding(16)
-            .background(Color.primary.opacity((1.0 - manager.settings.opacity) * 0.15).cornerRadius(20))
             .frame(width: 430)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
+            .background(
+                Color.clear
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
+                    .opacity(manager.settings.opacity)
+            )
             .windowDragHandle() // Now the entire widget is draggable
             .background(
                 GeometryReader { geo in
