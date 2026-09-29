@@ -13,7 +13,7 @@
 
 Интерактивный и удобный счётчик квот для **Claude / Codex / Antigravity** на macOS — показывает не только текущий расход лимита, но и то, насколько быстро вы его расходуете.
 
-<img width="700" height="194" alt="quotty_demo" src="https://github.com/user-attachments/assets/4adfc8f7-5468-435d-bb2c-ce5a4624582a" />
+<img width="800" alt="quotty_demo" src="assets/demo.gif" />
 
 Тонкая полоска поверх всех окон: показывает, сколько квоты осталось у ИИ-инструмента, в котором вы сейчас работаете, и когда лимит обнулится.
 

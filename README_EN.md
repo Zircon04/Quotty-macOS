@@ -13,7 +13,7 @@
 
 An interactive, movable HUD strip showing the quota and reset timers for **Claude / Codex / Antigravity** on macOS — showing not only your current quota consumption, but also how fast you are spending it.
 
-<img width="700" height="194" alt="quotty_demo" src="https://github.com/user-attachments/assets/4adfc8f7-5468-435d-bb2c-ce5a4624582a" />
+<img width="800" alt="quotty_demo" src="assets/demo.gif" />
 
 A sleek floating strip on top of all windows: shows remaining quota of the AI tool you are currently using, and when the quota window resets.
 
