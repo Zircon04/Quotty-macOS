@@ -54,7 +54,8 @@ public struct SettingsView: View {
                 Label(lang.text("Дополнительно", "Advanced"), systemImage: "network")
             }
         }
-        .frame(width: 560, height: 500)
+        .id(lang)
+        .frame(width: 600, height: 500)
     }
 
     // MARK: - Cards

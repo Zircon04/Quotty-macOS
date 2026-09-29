@@ -62,12 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let currentPolicy = NSApp.activationPolicy()
                 let targetPolicy: NSApplication.ActivationPolicy = showInDock ? .regular : .accessory
                 if currentPolicy != targetPolicy {
+                    let wasSettingsOpen = self?.settingsWindow?.isVisible ?? false
                     NSApp.setActivationPolicy(targetPolicy)
-                    // Re-show settings window after policy change (macOS hides all windows on .accessory)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        if let win = self?.settingsWindow, !win.isVisible {
-                            win.makeKeyAndOrderFront(nil)
-                            NSApp.activate(ignoringOtherApps: true)
+                    
+                    if wasSettingsOpen {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            self?.openSettings()
                         }
                     }
                 }
@@ -199,7 +199,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 500),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
