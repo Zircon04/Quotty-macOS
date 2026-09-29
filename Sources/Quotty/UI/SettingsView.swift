@@ -6,9 +6,9 @@ public struct SettingsView: View {
     public var onClose: (() -> Void)?
 
     // Glass-adapted palette
-    private let accentCol = Color(red: 110/255, green: 210/255, blue: 146/255)
-    private let textCol = Color(red: 240/255, green: 244/255, blue: 252/255)
-    private let dimCol = Color(red: 190/255, green: 198/255, blue: 214/255)
+    private let accentCol = Color.green
+    private let textCol = Color.primary
+    private let dimCol = Color.secondary
 
     public init(manager: QuotaManager, onClose: (() -> Void)? = nil) {
         self.manager = manager
@@ -18,46 +18,43 @@ public struct SettingsView: View {
     public var body: some View {
         let lang = manager.settings.language
 
-        VStack(spacing: 0) {
-            // Title bar
-            HStack(spacing: 8) {
-                if let icon = AppAssets.appIcon() {
-                    Image(nsImage: icon)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 20, height: 20)
-                        .cornerRadius(5)
+        TabView {
+            ScrollView {
+                Form {
+                    languageCard(lang: lang)
+                    appearanceCard(lang: lang)
                 }
-                Text(lang.text("Quotty — настройки", "Quotty — Settings"))
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(textCol)
-                Spacer()
-                Button(action: { onClose?() }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(dimCol)
-                        .font(.system(size: 16))
-                }
-                .buttonStyle(.plain)
+                .formStyle(.grouped)
+                .padding(.horizontal)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
+            .tabItem {
+                Label(lang.text("Основное", "General"), systemImage: "gear")
+            }
 
             ScrollView {
-                VStack(spacing: 14) {
-                    languageCard(lang: lang)
+                Form {
                     toolsCard(lang: lang)
-                    appearanceCard(lang: lang)
+                }
+                .formStyle(.grouped)
+                .padding(.horizontal)
+            }
+            .tabItem {
+                Label(lang.text("Инструменты", "Tools"), systemImage: "hammer")
+            }
+
+            ScrollView {
+                Form {
                     pollingCard(lang: lang)
                     diagnosticsCard(lang: lang)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .formStyle(.grouped)
+                .padding(.horizontal)
+            }
+            .tabItem {
+                Label(lang.text("Дополнительно", "Advanced"), systemImage: "network")
             }
         }
-        .frame(width: 480, height: 600)
-        .glassEffect(.settingsPanel)
-        .preferredColorScheme(.dark)
+        .frame(width: 560, height: 500)
     }
 
     // MARK: - Cards
@@ -210,14 +207,9 @@ public struct SettingsView: View {
 
                 // Exhausted Quotas Mode
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(lang.text("Исчерпанная квота (100%):", "Exhausted quota (100%):"))
-                            .font(.system(size: 12))
-                            .foregroundColor(dimCol)
-                        Text(exhaustedModeSubtitle(lang: lang))
-                            .font(.system(size: 10))
-                            .foregroundColor(dimCol.opacity(0.8))
-                    }
+                    Text(lang.text("Исчерпанная квота (100%):", "Exhausted quota (100%):"))
+                        .font(.system(size: 12))
+                        .foregroundColor(dimCol)
                     Spacer()
                     Picker("", selection: Binding(
                         get: { manager.settings.exhaustedMode },
@@ -232,7 +224,7 @@ public struct SettingsView: View {
                         Text(lang.text("С полосой", "Full")).tag(ExhaustedMode.full)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 230)
+                    .frame(width: 260)
                 }
 
                 Divider().background(Color.white.opacity(0.08))
@@ -387,7 +379,7 @@ public struct SettingsView: View {
                     Button(lang.text("Обновить данные сейчас", "Refresh data now")) {
                         manager.refreshNow()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                     .tint(accentCol)
                     .controlSize(.small)
                 }
@@ -407,7 +399,7 @@ public struct SettingsView: View {
                         let dir = Settings.settingsDirectory()
                         NSWorkspace.shared.open(dir)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.glass)
                     .controlSize(.small)
                 }
             }
@@ -415,15 +407,8 @@ public struct SettingsView: View {
     }
 
     private func cardView<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 10.5, weight: .bold))
-                .foregroundColor(dimCol)
-            VStack(alignment: .leading, spacing: 10) {
-                content()
-            }
-            .padding(12)
-            .glassEffect(.card, opacity: 1.0)
+        Section(header: Text(title)) {
+            content()
         }
     }
 

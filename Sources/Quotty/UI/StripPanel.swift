@@ -19,7 +19,7 @@ public final class StripPanel: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.isOpaque = false
         self.backgroundColor = .clear
-        self.hasShadow = true // Use native window shadow to perfectly match alpha mask
+        self.hasShadow = false // MUST BE FALSE: True creates an opaque grey backdrop mask!
         self.isMovableByWindowBackground = true  // Fallback for older macOS
         self.hidesOnDeactivate = false
 
@@ -32,6 +32,7 @@ public final class StripPanel: NSPanel {
         )
         let hostingView = NSHostingView(rootView: stripView)
         hostingView.autoresizingMask = [.width, .height]
+        
         self.contentView = hostingView
 
         restorePosition()

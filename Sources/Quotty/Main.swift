@@ -58,11 +58,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         manager.$settings
             .map(\.showInDock)
             .removeDuplicates()
-            .sink { showInDock in
+            .sink { [weak self] showInDock in
                 let currentPolicy = NSApp.activationPolicy()
                 let targetPolicy: NSApplication.ActivationPolicy = showInDock ? .regular : .accessory
                 if currentPolicy != targetPolicy {
                     NSApp.setActivationPolicy(targetPolicy)
+                    // Re-show settings window after policy change (macOS hides all windows on .accessory)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        if let win = self?.settingsWindow, !win.isVisible {
+                            win.makeKeyAndOrderFront(nil)
+                            NSApp.activate(ignoringOtherApps: true)
+                        }
+                    }
                 }
             }
             .store(in: &cancellables)
@@ -192,24 +199,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
-            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 500),
+            styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
-        win.title = "Quotty — настройки"
+        win.title = "Quotty"
         win.isReleasedWhenClosed = false
-        win.titlebarAppearsTransparent = true
-        win.titleVisibility = .hidden
-        win.isOpaque = false
-        win.backgroundColor = .clear
-        win.hasShadow = true
         win.center()
 
         let settingsView = SettingsView(manager: quotaManager) { [weak self] in
             self?.settingsWindow?.close()
         }
         let hostingView = NSHostingView(rootView: settingsView)
+        hostingView.autoresizingMask = [.width, .height]
+        
         win.contentView = hostingView
 
         self.settingsWindow = win

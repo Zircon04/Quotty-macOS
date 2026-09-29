@@ -13,14 +13,14 @@ public struct StripView: View {
     public var onOpenSettings: (() -> Void)?
     public var onHeightChange: ((CGFloat) -> Void)?
 
-    // Liquid Glass adapted palette — slightly brighter to work over blur
-    private let trackCol = Color(red: 80/255, green: 84/255, blue: 96/255).opacity(0.5)
-    private let greenCol = Color(red: 96/255, green: 196/255, blue: 132/255)
-    private let yellowCol = Color(red: 208/255, green: 192/255, blue: 96/255)
-    private let orangeCol = Color(red: 214/255, green: 150/255, blue: 74/255)
-    private let redCol = Color(red: 255/255, green: 90/255, blue: 90/255)
-    private let strongCol = Color(red: 240/255, green: 244/255, blue: 252/255)
-    private let dimCol = Color(red: 190/255, green: 198/255, blue: 214/255)
+    // Liquid Glass adapted palette
+    private let trackCol = Color.primary.opacity(0.15)
+    private let greenCol = Color.green
+    private let yellowCol = Color.yellow
+    private let orangeCol = Color.orange
+    private let redCol = Color.red
+    private let strongCol = Color.primary
+    private let dimCol = Color.secondary
 
     public init(manager: QuotaManager, onOpenSettings: (() -> Void)? = nil, onHeightChange: ((CGFloat) -> Void)? = nil) {
         self.manager = manager
@@ -51,61 +51,63 @@ public struct StripView: View {
             return []
         }()
 
-        VStack(alignment: .leading, spacing: 6) {
-            // Header
-            headerView(hiddenExhausted: hiddenExhausted, lang: lang)
+        GlassEffectContainer {
+            VStack(alignment: .leading, spacing: 10) {
+                // Header
+                headerView(hiddenExhausted: hiddenExhausted, lang: lang)
 
-            if state.last != nil, (state.online || state.rateLimited) {
-                if visibleLimits.isEmpty && !allLimits.isEmpty {
-                    HStack(spacing: 5) {
-                        Image(systemName: "clock.badge.exclamationmark")
-                            .font(.system(size: 10.5))
-                            .foregroundColor(orangeCol)
-                        Text(lang.text("Все квоты исчерпаны", "All quotas exhausted"))
-                            .font(.system(size: 11))
-                            .foregroundColor(dimCol)
-                        Spacer()
+                if state.last != nil, (state.online || state.rateLimited) {
+                    if visibleLimits.isEmpty && !allLimits.isEmpty {
+                        HStack(spacing: 5) {
+                            Image(systemName: "clock.badge.exclamationmark")
+                                .font(.system(size: 10.5))
+                                .foregroundColor(orangeCol)
+                            Text(lang.text("Все квоты исчерпаны", "All quotas exhausted"))
+                                .font(.system(size: 11))
+                                .foregroundColor(dimCol)
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    } else {
+                        ForEach(visibleLimits) { limit in
+                            limitRow(limit: limit, lang: lang)
+                        }
                     }
-                    .padding(.vertical, 2)
+                } else if !state.online && state.ever {
+                    Text(lang.text("нет данных", "no data"))
+                        .font(.system(size: 11))
+                        .foregroundColor(dimCol)
+                } else if let err = state.error {
+                    let errMsg = err.lowercased().hasPrefix("ошибка") || err.lowercased().hasPrefix("error") ?
+                        err : lang.text("ошибка: \(err)", "error: \(err)")
+                    Text(errMsg)
+                        .font(.system(size: 10.5))
+                        .foregroundColor(orangeCol)
+                        .lineLimit(2)
                 } else {
-                    ForEach(visibleLimits) { limit in
-                        limitRow(limit: limit, lang: lang)
-                    }
+                    Text(lang.text("загрузка данных…", "loading data…"))
+                        .font(.system(size: 11))
+                        .foregroundColor(dimCol)
                 }
-            } else if !state.online && state.ever {
-                Text(lang.text("нет данных", "no data"))
-                    .font(.system(size: 11))
-                    .foregroundColor(dimCol)
-            } else if let err = state.error {
-                let errMsg = err.lowercased().hasPrefix("ошибка") || err.lowercased().hasPrefix("error") ?
-                    err : lang.text("ошибка: \(err)", "error: \(err)")
-                Text(errMsg)
-                    .font(.system(size: 10.5))
-                    .foregroundColor(orangeCol)
-                    .lineLimit(2)
-            } else {
-                Text(lang.text("загрузка данных…", "loading data…"))
-                    .font(.system(size: 11))
-                    .foregroundColor(dimCol)
             }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .frame(width: 430)
-        .glassEffect(.liquid, opacity: manager.settings.opacity)
-        .windowDragHandle() // Now the entire widget is draggable
-        .background(
-            GeometryReader { geo in
-                Color.clear.preference(key: ContentHeightPreferenceKey.self, value: geo.size.height)
+            .padding(16)
+            .background(Color.primary.opacity((1.0 - manager.settings.opacity) * 0.15).cornerRadius(20))
+            .frame(width: 430)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 20))
+            .windowDragHandle() // Now the entire widget is draggable
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(key: ContentHeightPreferenceKey.self, value: geo.size.height)
+                }
+            )
+            .onPreferenceChange(ContentHeightPreferenceKey.self) { h in
+                if h > 10 {
+                    onHeightChange?(h)
+                }
             }
-        )
-        .onPreferenceChange(ContentHeightPreferenceKey.self) { h in
-            if h > 10 {
-                onHeightChange?(h)
+            .contextMenu {
+                stripContextMenu(lang: lang)
             }
-        }
-        .contextMenu {
-            stripContextMenu(lang: lang)
         }
     }
 

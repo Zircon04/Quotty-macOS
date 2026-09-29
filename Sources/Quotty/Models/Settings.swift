@@ -42,7 +42,7 @@ public struct Settings: Codable, Sendable {
     public var diagnostics: Bool = false
     public var autoHideOnInactive: Bool = true
     public var exhaustedMode: ExhaustedMode = .compact
-    public var showInDock: Bool = false
+    public var showInDock: Bool = true
     public var showDockBadge: Bool = true
     public var showWeeklyLimits: Bool = true
     public var compactMode: Bool = false
